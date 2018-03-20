@@ -33,3 +33,8 @@ void VideoAPI::stopVideoDisplay()
 {
     display->stopDisplay();
 }
+
+void VideoAPI::takePhoto(const std::string &out)
+{
+    makePhoto(out);
+}

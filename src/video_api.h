@@ -4,9 +4,9 @@
 #include "decoder.h"
 #include "encoder.h"
 #include "display.h"
+#include "photo.h"
 #include <iostream>
 #include <memory>
-
 
 class VideoAPI
 {
@@ -23,6 +23,7 @@ public:
     void startVideoDisplay(int pos_x, int pos_y);
     void stopVideoRecord();
     void stopVideoDisplay();
+    void takePhoto(const std::string& out);
 };
 
 

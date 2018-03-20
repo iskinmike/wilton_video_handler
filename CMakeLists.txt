@@ -14,11 +14,14 @@
 
 cmake_minimum_required ( VERSION 2.8.12 )
 
-project ( example_cpp CXX )
+project ( wilton_video_handler CXX )
 
+# dependencies
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 
 set(SOURCES
     src/frame_keeper.cpp
@@ -26,6 +29,7 @@ set(SOURCES
     src/encoder.cpp
     src/display.cpp
     src/example.cpp
+    src/photo.cpp
     src/video_api.cpp)
 
 set(LIBS 
@@ -38,16 +42,31 @@ set(LIBS
   SDL2
   pthread)
 
+set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
+set(STATICLIBS_HEADERS_DIRS
+    "$ENV{WILTON_DIR}/deps/staticlib_config/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_io/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_json/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_support/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
+
+message(STATUS ${WILTON_HEADERS_DIRS})
+message(STATUS ${STATICLIBS_HEADERS_DIRS})
+
 add_library ( ${PROJECT_NAME} SHARED
         ${SOURCES} )
 
 target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
-        $ENV{WILTON_HOME}/devel/include )
+        $ENV{WILTON_HOME}/devel/include
+        ${WILTON_HEADERS_DIRS}
+        ${STATICLIBS_HEADERS_DIRS})
 
 if ( WIN32 )
     target_link_libraries ( ${PROJECT_NAME} PRIVATE
-            $ENV{WILTON_HOME}/devel/wilton_core.lib ${LIBS})
+            $ENV{WILTON_HOME}/devel/wilton_core.lib )
 endif ( )
+
+target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
   
 add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory dist

@@ -6,7 +6,6 @@ void Encoder::runEncoding()
 {
     FrameKeeper& fk = FrameKeeper::Instance();
     while (!stop_flag) {
-        fk.waitData();
         encodeFrame(fk.getFrame());
     }
     stop_flag.exchange(false);
@@ -66,12 +65,20 @@ void Encoder::startEncoding()
 void Encoder::stopEncoding()
 {
     stop_flag.exchange(true);
+    if (encoder_thread.joinable()) {
+        encoder_thread.join();
+    }
 }
 
 void Encoder::encodeFrame(AVFrame* frame)
 {
+    if (nullptr == frame) {
+        return;
+    }
+
     int out_size = 0;
     int got_pack = 0;
+
     AVPacket tmp_pack;
     av_init_packet(&tmp_pack);
     tmp_pack.data = NULL; // for autoinit
@@ -83,6 +90,7 @@ void Encoder::encodeFrame(AVFrame* frame)
         fwrite(tmp_pack.data, 1, tmp_pack.size, pFile);
     }
 
+    cur_pts = frame->pkt_pts;
     av_free(frame);
 }
 

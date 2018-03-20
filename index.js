@@ -16,20 +16,50 @@
 
 define([
     "wilton/dyload",
-    "wilton/wiltoncall"
-], function(dyload, wiltoncall) {
+    "wilton/wiltoncall",
+    "wilton/thread",
+    "wilton/Logger"
+], function(dyload, wiltoncall, thread, Logger) {
     "use strict";
 
     // load shared lib on init
     dyload({
-        name: "example_cpp"
+        name: "wilton_video_handler"
     });
+    var logger = new Logger("server.main");
     
     return {
         main: function() {
+            Logger.initConsole("INFO");
             print("Calling native module ...");
-            var resp = wiltoncall("example_hello", "Hello");
+            var settings = {};
+            settings["in"] = "/dev/video0";
+            settings["out"] = "out.mp4";
+            settings["fmt"] = "video4linux2";
+            settings["title"] = "CAM";
+            var resp = wiltoncall("intiHandler", settings);
+            var display_settings = {};
+            display_settings["id"] = resp;
+            display_settings["x"] = 200;
+            display_settings["y"] = 200;
             print("Call response: [" + resp + "]");
+
+            wiltoncall("startVideoRecord", resp);
+            wiltoncall("displayVideo", display_settings);
+            for (var i = 0; i < 2; ++i) {
+                logger.info("Server is running ...");
+                thread.sleepMillis(1000);
+            }
+
+            var photo_settings = {};
+            photo_settings["id"] = resp;
+            photo_settings["out"] = "photo1.bmp";
+
+            wiltoncall("makePhoto", photo_settings);
+            thread.sleepMillis(1000);
+
+            wiltoncall("stopDisplayVideo", resp);
+            wiltoncall("stopVideoRecord", resp);
         }
     };
 });

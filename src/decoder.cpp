@@ -167,6 +167,9 @@ void Decoder::startDecoding()
 void Decoder::stopDecoding()
 {
     stop_flag.exchange(true);
+    if (decoder_thread.joinable()) {
+        decoder_thread.join();
+    }
 }
 
 int Decoder::getBitRate()

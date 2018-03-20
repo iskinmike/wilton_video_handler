@@ -6,7 +6,6 @@ void Display::runDisplay()
 {
     FrameKeeper& fk = FrameKeeper::Instance();
     while (!stop_flag) {
-        fk.waitData();
         displayFrame(fk.getFrame());
     }
     stop_flag.exchange(false);
@@ -55,6 +54,10 @@ void Display::stopDisplay()
 
 void Display::displayFrame(AVFrame *frame)
 {
+    if (nullptr == frame) {
+        return;
+    }
+
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
                             SDL_TEXTUREACCESS_STREAMING, width, height);
 
