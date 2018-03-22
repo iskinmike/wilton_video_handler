@@ -55,7 +55,7 @@ public:
         width(_widtth), height(_height), bit_rate(_bit_rate){}
   ~Decoder();
 
-  int init();
+  std::string init();
 
   void startDecoding();
   void stopDecoding();

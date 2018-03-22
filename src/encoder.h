@@ -39,7 +39,7 @@ public:
         stop_flag(false), cur_pts(0), pOutFormatCtx(NULL), pOutStream(NULL)  {}
   ~Encoder();
 
-  int init(int _bit_rate, int _width, int _height);
+  std::string init(int _bit_rate, int _width, int _height);
   void startEncoding();
   void stopEncoding();
 

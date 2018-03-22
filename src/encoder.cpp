@@ -6,11 +6,8 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 {
     /* rescale output packet timestamp values from codec to stream timebase */
     av_packet_rescale_ts(pkt, *time_base, st->time_base);
-//    pkt->stream_index = st->index;
 
     /* Write the compressed frame to the media file. */
-//    log_packet(fmt_ctx, pkt);
-//    return av_write_frame(fmt_ctx, pkt);
     return av_interleaved_write_frame(fmt_ctx, pkt);
 }
 
@@ -33,36 +30,28 @@ Encoder::~Encoder()
     av_free(pEncodeCodecCtx);
 }
 
-int Encoder::init(int _bit_rate, int _width, int _height)
+// OutFormat And OutStream based on muxing.c example by Fabrice Bellard
+std::string Encoder::init(int _bit_rate, int _width, int _height)
 {
     bit_rate = _bit_rate;
     width = _width;
     height = _height;
 
     /* allocate the output media context */
-    int res = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "avi", NULL);
-    if (res < 0) {
-        fprintf(stderr, "Could not allocate output_context.. try mpeg\n");
-        res = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "mpeg", out_file.c_str());
+    int ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "avi", NULL);
+    if (0 > ret) {
+        ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, NULL, out_file.c_str());
     }
-    if (res < 0) {
-        fprintf(stderr, "Could not allocate output_context\n");
-        return -1;
-    }
+    if (0 > ret) return std::string("Could not allocate output_context");
 
     // find encoder codec
     pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
-    if (!pEncodeCodec) {
-        fprintf(stderr, "codec not found\n");
-        exit(1);
-    }
+    if (!pEncodeCodec) return std::string("Codec not found");
 
     pOutStream = avformat_new_stream(pOutFormatCtx, pEncodeCodec);
-    if (!pOutStream) {
-        fprintf(stderr, "Could not allocate stream\n");
-        return -1;
-    }
+    if (!pOutStream) return std::string("Could not allocate stream");
 
+    // set Context and it settings
     pEncodeCodecCtx = avcodec_alloc_context3(pEncodeCodec);
     pEncodeCodecCtx->codec_id = pEncodeCodec->id;
     pEncodeCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -77,15 +66,13 @@ int Encoder::init(int _bit_rate, int _width, int _height)
 
 
     pOutStream->id = pOutFormatCtx->nb_streams-1;
-    int ret = avcodec_copy_context(pOutStream->codec, pEncodeCodecCtx);
-    if (ret < 0) {
-        fprintf(stderr, "Failed to copy context from input to output stream codec context\n");
-        return -1;
+    ret = avcodec_copy_context(pOutStream->codec, pEncodeCodecCtx);
+    if (0 > ret) {
+        return std::string("Failed to copy context from input to output stream codec context");
     }
 
     if(avcodec_open2(pEncodeCodecCtx, pEncodeCodec, NULL)<0) {
-        printf("Can't open codec to encode\n");
-        return -1; // Could not open codec
+        return std::string("Can't open codec to encode");
     }
     /* timebase: This is the fundamental unit of time (in seconds) in terms
      * of which frame timestamps are represented. For fixed-fps content,
@@ -97,16 +84,14 @@ int Encoder::init(int _bit_rate, int _width, int _height)
 
     // open file to write
     ret = avio_open(&(pOutFormatCtx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
-    if (ret < 0) {
-        fprintf(stderr, "Could not open '%s': \n", out_file.c_str());
-        return -1;
+    if (0 > ret) {
+        return (std::string("Could not open ") + out_file);
     }
-    AVDictionary* opt = NULL;
 
     // header is musthave for
-    avformat_write_header(pOutFormatCtx, &opt);
+    avformat_write_header(pOutFormatCtx, NULL);
 
-    return 0;
+    return std::string{};
 }
 
 void Encoder::startEncoding()

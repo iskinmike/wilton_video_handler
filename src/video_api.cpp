@@ -10,15 +10,15 @@ VideoAPI::VideoAPI(VideoSettings set)
     display = std::shared_ptr<Display> (new Display(set.title));
 }
 
-int VideoAPI::startVideoRecord()
+std::string VideoAPI::startVideoRecord()
 {
-    int result = 0;
+    auto result = std::string{};
     result = decoder->init();
-    if (0 != result) {
+    if (!result.empty()) {
         return result;
     }
     result = encoder->init(decoder->getBitRate(), decoder->getWidth(), decoder->getHeight());
-    if (0 != result) {
+    if (!result.empty()) {
         return result;
     }
 
@@ -27,9 +27,9 @@ int VideoAPI::startVideoRecord()
     return result;
 }
 
-int VideoAPI::startVideoDisplay()
+std::string VideoAPI::startVideoDisplay()
 {
-    int result = 0;
+    auto result = std::string{};
     result = display->init((-1 == settings.pos_x) ? 100 : settings.pos_x,
             (-1 == settings.pos_y) ? 100 : settings.pos_y,
             decoder->getWidth(), decoder->getHeight());
@@ -48,7 +48,7 @@ void VideoAPI::stopVideoDisplay()
     display->stopDisplay();
 }
 
-void VideoAPI::makePhoto()
+std::string VideoAPI::makePhoto()
 {
-    photo::makePhoto(settings.photo_name);
+    return photo::makePhoto(settings.photo_name);
 }

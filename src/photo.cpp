@@ -1,17 +1,22 @@
 #include "photo.h"
 #include "frame_keeper.h"
 #include "stdio.h"
-#include <iostream>
 namespace photo{
-int makePhoto(std::string out_file)
+std::string makePhoto(std::string out_file)
 {
-    int result = 0;
     FILE* file = fopen(out_file.c_str(), "wb");
+    if (NULL == file) {
+        return std::string("Can't open file for Photo.");
+    }
     AVFrame* frameRGB;
     struct SwsContext* sws_ctx;
 
     FrameKeeper& fk = FrameKeeper::Instance();
     AVFrame* frame = fk.getFrame();
+
+    if (nullptr == frame) {
+        return std::string("Can't make Photo. Get 'NULL'' frame.");
+    }
 
     sws_ctx = sws_getContext
     (
@@ -58,6 +63,6 @@ int makePhoto(std::string out_file)
     fwrite(frameRGB->data[0]+y*frameRGB->linesize[0], 1, frameRGB->width*3, file);
 
     fclose(file);
-    return result;
+    return std::string{};
 }
 }

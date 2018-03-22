@@ -38,7 +38,6 @@ namespace { //anonymous
 std::map<int,std::shared_ptr<VideoAPI>> vhandlers_keeper;
 }
 
-// Добавим функции для работы
 int intiHandler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
                 const int& height, const int& pos_x, const int& pos_y, const int& bit_rate){
@@ -59,15 +58,12 @@ int intiHandler(int id, const std::string& in, const std::string& out,
     return id;
 }
 
-// TODO: Добавить валидаци параметров, id например
 std::string startVideoRecord(int id){
-    int res = vhandlers_keeper[id]->startVideoRecord();
-    return std::to_string(res);
+    return vhandlers_keeper[id]->startVideoRecord();
 }
 
 std::string displayVideo(int id){
-    int res = vhandlers_keeper[id]->startVideoDisplay();
-    return std::to_string(res);
+    return vhandlers_keeper[id]->startVideoDisplay();
 }
 
 std::string stopVideoRecord(int id){
@@ -81,8 +77,7 @@ std::string stopDisplayVideo(int id){
 }
 
 std::string makePhoto(int id){
-    vhandlers_keeper[id]->makePhoto();
-    return std::string{};
+    return vhandlers_keeper[id]->makePhoto();
 }
 
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
@@ -154,7 +149,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             }
         }
 
-        // check json data, some of them optional
+        // check not optional json data
         if (in.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'in' not specified"));
         if (out.empty())  throw wilton::support::exception(TRACEMSG(

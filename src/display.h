@@ -29,7 +29,7 @@ public:
         : title(_title), stop_flag(false){}
     ~Display();
 
-    int init(int pos_x, int pos_y, int _width, int _height);
+    std::string init(int pos_x, int pos_y, int _width, int _height);
     void startDisplay();
     void stopDisplay();
 

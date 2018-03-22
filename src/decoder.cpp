@@ -46,7 +46,7 @@ Decoder::~Decoder()
     av_free(pFrameOut);
 }
 
-int Decoder::init()
+std::string Decoder::init()
 {
     // Register all formats and codecs
     av_register_all();
@@ -55,29 +55,24 @@ int Decoder::init()
     // determine format context
     pFormatCtx = avformat_alloc_context();
     if (!pFormatCtx) {
-        printf("Memory error\n");
-        return -1;
+        return std::string("Memory error");
     }
 
     file_iformat = av_find_input_format(format.c_str());
     if (file_iformat == NULL) {
-        printf("Unknown input format: '%s'\n", format.c_str());
-        return -1; // Couldn't open file
+        return std::string("Unknown input format: ") + format; 
     }
 
     // Open video file
     if(avformat_open_input(&pFormatCtx, filename.c_str(), file_iformat, NULL)!=0){
-      printf("Can't Open video file with format [%s] try to autodetect...\n", format.c_str());
       if(avformat_open_input(&pFormatCtx, filename.c_str(), NULL, NULL)!=0){
-          printf("Can't Open video file anyway\n");
-          return -1; // Couldn't open file
+          return std::string("Can't Open video file anyway");
       }
     }
 
     // Retrieve stream information
     if(avformat_find_stream_info(pFormatCtx, NULL)<0) {
-      printf("Can't Retrieve stream information\n");
-      return -1; // Couldn't find stream information
+      return std::string("Can't Retrieve stream information");
     }
 
     // Dump information about file onto standard error
@@ -91,8 +86,7 @@ int Decoder::init()
       break;
     }
     if(videoStream==-1) {
-        printf("Can't find streams\n");
-        return -1; // Didn't find a video stream
+        return std::string("Can't find streams");
     }
 
     // Get a pointer to the codec context for the video stream
@@ -101,15 +95,13 @@ int Decoder::init()
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
     if(pCodec==NULL) {
-      printf("Unsupported codec!\n");
-      return -1; // Codec not found
+      return std::string("Unsupported codec!");
     }
-    printf("Find codec [%s]\n", pCodec->long_name);
 
     // Open codec
     if(avcodec_open2(pCodecCtx, pCodec, &optionsDict)<0) {
         printf("Can't open codec\n");
-        return -1; // Could not open codec
+        return std::string("Can't open codec"); // Could not open codec
     }
 
     // Allocate video frame
@@ -118,7 +110,7 @@ int Decoder::init()
     // Allocate an AVFrame structure
     pFrameOut=av_frame_alloc();
     if(pFrameOut==NULL){
-        return -1;
+        return std::string("Can't allocate frame");
     }
 
     // setup omitted settings if exists
@@ -149,7 +141,7 @@ int Decoder::init()
     // of AVPicture
     avpicture_fill((AVPicture *)pFrameOut, buffer, AV_PIX_FMT_YUV420P, width, height);
 
-    return 0;
+    return std::string{};
 }
 
 void Decoder::startDecoding()

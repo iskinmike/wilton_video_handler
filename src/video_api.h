@@ -22,21 +22,16 @@ class VideoAPI
     std::shared_ptr<Display> display;
 
     // settings
-    std::string input_file, output_file, format;
-    int pos_x, pos_y;
-    int width, height;
-    int bit_rate;
-
     VideoSettings settings;
 
 public:
     VideoAPI(VideoSettings set);
     ~VideoAPI(){}
-    int startVideoRecord();
-    int startVideoDisplay();
+    std::string startVideoRecord();
+    std::string startVideoDisplay();
     void stopVideoRecord();
     void stopVideoDisplay();
-    void makePhoto();
+    std::string makePhoto();
 };
 
 

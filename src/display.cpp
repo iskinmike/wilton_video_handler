@@ -17,26 +17,24 @@ Display::~Display(){
     }
 }
 
-int Display::init(int pos_x, int pos_y, int _width, int _height)
+std::string Display::init(int pos_x, int pos_y, int _width, int _height)
 {
     width = _width;
     height = _height;
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
-      fprintf(stderr, "Could not initialize SDL - %s\n", SDL_GetError());
-      exit(1);
+      return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
     }
 
     screen = SDL_CreateWindow(title.c_str(), pos_x, pos_y, width, height, 0);
     if(!screen) {
-        fprintf(stderr, "SDL: could not set video mode - exiting\n");
-        exit(1);
+        return std::string("SDL: could not set video mode - exiting");
     }
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
-        fprintf(stderr, "SDL: could not create renderer - exiting\n");
-        exit(1);
+        return std::string("SDL: could not create renderer - exiting");
     }
+    return std::string{};
 }
 
 void Display::startDisplay()
