@@ -13,7 +13,6 @@ struct VideoSettings{
     int pos_x, pos_y;
     int width, height;
     int bit_rate;
-//    int encoder_type;
 };
 
 class VideoAPI

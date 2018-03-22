@@ -35,7 +35,7 @@ define([
             var settings = {};
             settings["id"] = 1;
             settings["in"] = "/dev/video0";
-            settings["out"] = "out.mp4";
+            settings["out"] = "out.avi";
             settings["fmt"] = "video4linux2";
             settings["title"] = "CAM";
             // settings["width"] = 480;

@@ -17,6 +17,10 @@ class Encoder
     AVCodecContext*  pEncodeCodecCtx;
     AVCodec*         pEncodeCodec;
 
+    // write structs
+    AVFormatContext* pOutFormatCtx;
+    AVStream*        pOutStream;
+
     std::string      out_file;
 
     int bit_rate;
@@ -31,7 +35,8 @@ class Encoder
 
 public:
   Encoder(std::string out)
-      : pEncodeCodecCtx(NULL), pEncodeCodec(NULL), out_file(out), stop_flag(false), cur_pts(0) {}
+      : pEncodeCodecCtx(NULL), pEncodeCodec(NULL), out_file(out),
+        stop_flag(false), cur_pts(0), pOutFormatCtx(NULL), pOutStream(NULL)  {}
   ~Encoder();
 
   int init(int _bit_rate, int _width, int _height);

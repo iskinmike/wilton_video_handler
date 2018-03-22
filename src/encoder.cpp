@@ -2,6 +2,18 @@
 #include "encoder.h"
 #include "frame_keeper.h"
 
+static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
+{
+    /* rescale output packet timestamp values from codec to stream timebase */
+    av_packet_rescale_ts(pkt, *time_base, st->time_base);
+//    pkt->stream_index = st->index;
+
+    /* Write the compressed frame to the media file. */
+//    log_packet(fmt_ctx, pkt);
+//    return av_write_frame(fmt_ctx, pkt);
+    return av_interleaved_write_frame(fmt_ctx, pkt);
+}
+
 void Encoder::runEncoding()
 {
     FrameKeeper& fk = FrameKeeper::Instance();
@@ -26,42 +38,81 @@ int Encoder::init(int _bit_rate, int _width, int _height)
     bit_rate = _bit_rate;
     width = _width;
     height = _height;
-    // Open file
-    pFile=fopen(out_file.c_str(), "wb");
-    // printf("file opened\n");
 
-//    pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    /* allocate the output media context */
+    int res = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "avi", NULL);
+    if (res < 0) {
+        fprintf(stderr, "Could not allocate output_context.. try mpeg\n");
+        res = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "mpeg", out_file.c_str());
+    }
+    if (res < 0) {
+        fprintf(stderr, "Could not allocate output_context\n");
+        return -1;
+    }
+
+    // find encoder codec
     pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
     if (!pEncodeCodec) {
         fprintf(stderr, "codec not found\n");
         exit(1);
     }
+
+    pOutStream = avformat_new_stream(pOutFormatCtx, pEncodeCodec);
+    if (!pOutStream) {
+        fprintf(stderr, "Could not allocate stream\n");
+        return -1;
+    }
+
     pEncodeCodecCtx = avcodec_alloc_context3(pEncodeCodec);
+    pEncodeCodecCtx->codec_id = pEncodeCodec->id;
     pEncodeCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
-    pEncodeCodecCtx->gop_size = 0;//pCodecCtx->gop_size;
+    pEncodeCodecCtx->gop_size = 1;/* emit one intra frame every twelve frames at most */ //pCodecCtx->gop_size;
     pEncodeCodecCtx->bit_rate = bit_rate;
     pEncodeCodecCtx->width = width;
     pEncodeCodecCtx->height = height;
-    pEncodeCodecCtx->time_base = (AVRational){1,25};//pCodecCtx->time_base;//
+    pEncodeCodecCtx->time_base = (AVRational){1,25};
     pEncodeCodecCtx->max_b_frames = 0;
     pEncodeCodecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
     pEncodeCodecCtx->bit_rate_tolerance = bit_rate;
 
 
-//    pEncodeCodecCtx->
+    pOutStream->id = pOutFormatCtx->nb_streams-1;
+    int ret = avcodec_copy_context(pOutStream->codec, pEncodeCodecCtx);
+    if (ret < 0) {
+        fprintf(stderr, "Failed to copy context from input to output stream codec context\n");
+        return -1;
+    }
 
     if(avcodec_open2(pEncodeCodecCtx, pEncodeCodec, NULL)<0) {
         printf("Can't open codec to encode\n");
         return -1; // Could not open codec
     }
+    /* timebase: This is the fundamental unit of time (in seconds) in terms
+     * of which frame timestamps are represented. For fixed-fps content,
+     * timebase should be 1/framerate and timestamp increments should be
+     * identical to 1. */
+    pOutStream->time_base = pEncodeCodecCtx->time_base;
+
+    av_dump_format(pOutFormatCtx, 0, out_file.c_str(), 1);
+
+    // open file to write
+    ret = avio_open(&(pOutFormatCtx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        fprintf(stderr, "Could not open '%s': \n", out_file.c_str());
+        return -1;
+    }
+    AVDictionary* opt = NULL;
+
+    // header is musthave for
+    avformat_write_header(pOutFormatCtx, &opt);
+
+    return 0;
 }
 
 void Encoder::startEncoding()
 {
     // start wait to frame keeper signal
-    std::cout << "width: " << width << std::endl;
-    std::cout << "height: " << height << std::endl;
-    std::cout << "bit_rate: " << bit_rate << std::endl;
+    cur_pts = 0;
     encoder_thread = std::thread([this] {return this->runEncoding();});
 }
 
@@ -87,52 +138,22 @@ void Encoder::encodeFrame(AVFrame* frame)
     av_init_packet(&tmp_pack);
     tmp_pack.data = NULL; // for autoinit
     tmp_pack.size = 0;
-//    tmp_pack.duration = frame->pkt_duration;
-//    tmp_pack.dts = frame->pts;
-//    av_rescale_q();
-    // Try to encode and write file
 
-    // std::cout << "**************************"  << std::endl;
-    // std::cout << "pkt_duration:          " << frame->pkt_duration << std::endl;
-    // std::cout << "pkt_pos:               " << frame->pkt_pos << std::endl;
-    // std::cout << "best_effort_timestamp: " << frame->best_effort_timestamp << std::endl;
-    // std::cout << "pts:                   " << frame->pts << std::endl;
-    // std::cout << "pkt_dts:               " << frame->pkt_dts << std::endl;
-    // std::cout << "pkt_pts:               " << frame->pkt_pts << std::endl;
-    // std::cout << "--------------------------"  << std::endl;
-
-//    std::cout << "=======================" << std::endl;
-//    std::cout << "pkt_duration:          " << frame->pkt_duration << std::endl;
-//    std::cout << "pkt_pos:               " << frame->pkt_pos << std::endl;
-//    std::cout << "best_effort_timestamp: " << frame->best_effort_timestamp << std::endl;
-//    std::cout << "pts:                   " << frame->pts << std::endl;
-//    std::cout << "pkt_dts:               " << frame->pkt_dts << std::endl;
-//    std::cout << "pkt_pts:               " << frame->pkt_pts << std::endl;
     out_size = avcodec_encode_video2(pEncodeCodecCtx, &tmp_pack, frame, &got_pack);
-
+    // reset pts for MPEG4 format
+    tmp_pack.pts = tmp_pack.dts = cur_pts;
     if (got_pack) {
-        fwrite(tmp_pack.data, 1, tmp_pack.size, pFile);
+        write_frame(pOutFormatCtx, &pEncodeCodecCtx->time_base, pOutStream, &tmp_pack);
     }
-
-//    std::cout << "```````````````````````````"  << std::endl;
-//    std::cout << "pts:                  " << tmp_pack.pts << std::endl;
-//    std::cout << "dts:                  " << tmp_pack.dts << std::endl;
-//    std::cout << "cur_pts:              " << cur_pts << std::endl;
-//    std::cout << "eval duration:        " << tmp_pack.pts - cur_pts << std::endl;
-//    std::cout << "duration:             " << tmp_pack.duration << std::endl;
-//    std::cout << "convergence_duration: " << tmp_pack.convergence_duration << std::endl;
-//    std::cput << << tmp_pack. << std::endl;
-//    cur_pts = tmp_pack.pts;//frame->pkt_pts;
+    // increment pts
+    cur_pts++;
 
     av_free(frame);
 }
 
 void Encoder::closeFile()
 {
-    if (nullptr != pFile) {
-        uint8_t outbuf[4] = {0x00, 0x00, 0x01, 0xb7};
-        fwrite(outbuf, 1, 4, pFile);
-        fclose(pFile);
-        pFile = nullptr;
+    if (NULL != pOutFormatCtx->pb){
+        avio_closep(&(pOutFormatCtx->pb));
     }
 }

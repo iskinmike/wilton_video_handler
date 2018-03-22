@@ -3,8 +3,6 @@
 
 void Decoder::runDecoding()
 {
-//    uint64_t start_pts = 0;
-//    bool first_flag = false;
     while(av_read_frame(pFormatCtx, &packet)>=0) {
         // Is this a packet from the video stream?
         if(packet.stream_index==videoStream) {
@@ -18,38 +16,11 @@ void Decoder::runDecoding()
                     pCodecCtx->height, ((AVPicture *)pFrameOut)->data,
                     ((AVPicture *)pFrameOut)->linesize);
 
-
-//                std::cout << "**************************"  << std::endl;
-//                std::cout << "pkt_duration:          " << pFrame->pkt_duration << std::endl;
-//                std::cout << "pkt_pos:               " << pFrame->pkt_pos << std::endl;
-//                std::cout << "best_effort_timestamp: " << pFrame->best_effort_timestamp << std::endl;
-//                std::cout << "pts:                   " << pFrame->pts << std::endl;
-//                std::cout << "pkt_dts:               " << pFrame->pkt_dts << std::endl;
-//                std::cout << "pkt_pts:               " << pFrame->pkt_pts << std::endl;
-//                std::cout << "--------------------------"  << std::endl;
-
-//                if (!first_flag) {
-//                    start_pts = pFrame->best_effort_timestamp;
-//                    first_flag = true;
-//                }
-
-                pFrameOut->pts = pFrame->best_effort_timestamp;// - start_pts;
-//                pFrameOut->best_effort_timestamp = pFrame->best_effort_timestamp - start_pts;
-//                pFrameOut->pkt_dts = pFrame->pkt_dts;
-//                pFrameOut->pkt_pts = pFrame->pkt_pts;
-//                pFrameOut->pkt_duration = pFrame->pkt_duration;
-
+                pFrameOut->pts = pFrame->best_effort_timestamp;
                 pFrameOut->format = AV_PIX_FMT_YUV420P;
-                pFrameOut->width = width;//pCodecCtx->width;
-                pFrameOut->height = height;//pCodecCtx->height;
+                pFrameOut->width = width;
+                pFrameOut->height = height;
                 
-//                std::cout << "pkt_duration:          " << pFrameOut->pkt_duration << std::endl;
-//                std::cout << "pkt_pos:               " << pFrameOut->pkt_pos << std::endl;
-//                std::cout << "best_effort_timestamp: " << pFrameOut->best_effort_timestamp << std::endl;
-//                std::cout << "pts:                   " << pFrameOut->pts << std::endl;
-//                std::cout << "pkt_dts:               " << pFrameOut->pkt_dts << std::endl;
-//                std::cout << "pkt_pts:               " << pFrameOut->pkt_pts << std::endl;
-
                 FrameKeeper& fk = FrameKeeper::Instance();
                 fk.assigNewFrame(pFrameOut);
             }
@@ -77,7 +48,6 @@ Decoder::~Decoder()
 
 int Decoder::init()
 {
-    std::cout << "Decoder::init" << std::endl;
     // Register all formats and codecs
     av_register_all();
     avdevice_register_all();
@@ -113,9 +83,6 @@ int Decoder::init()
     // Dump information about file onto standard error
     av_dump_format(pFormatCtx, 0, filename.c_str(), 0);
 
-    std::cout << "format bit_rate  = " << pFormatCtx->bit_rate  << std::endl;
-
-
     // Find the first video stream
     videoStream=-1;
     for(int i=0; i<pFormatCtx->nb_streams; i++)
@@ -127,7 +94,6 @@ int Decoder::init()
         printf("Can't find streams\n");
         return -1; // Didn't find a video stream
     }
-    printf("find %d streams\n", videoStream + 1);
 
     // Get a pointer to the codec context for the video stream
     pCodecCtx=pFormatCtx->streams[videoStream]->codec;
