@@ -3,6 +3,8 @@
 
 void Decoder::runDecoding()
 {
+//    uint64_t start_pts = 0;
+//    bool first_flag = false;
     while(av_read_frame(pFormatCtx, &packet)>=0) {
         // Is this a packet from the video stream?
         if(packet.stream_index==videoStream) {
@@ -16,11 +18,37 @@ void Decoder::runDecoding()
                     pCodecCtx->height, ((AVPicture *)pFrameOut)->data,
                     ((AVPicture *)pFrameOut)->linesize);
 
-                pFrameOut->pts = pFrame->best_effort_timestamp;
+
+//                std::cout << "**************************"  << std::endl;
+//                std::cout << "pkt_duration:          " << pFrame->pkt_duration << std::endl;
+//                std::cout << "pkt_pos:               " << pFrame->pkt_pos << std::endl;
+//                std::cout << "best_effort_timestamp: " << pFrame->best_effort_timestamp << std::endl;
+//                std::cout << "pts:                   " << pFrame->pts << std::endl;
+//                std::cout << "pkt_dts:               " << pFrame->pkt_dts << std::endl;
+//                std::cout << "pkt_pts:               " << pFrame->pkt_pts << std::endl;
+//                std::cout << "--------------------------"  << std::endl;
+
+//                if (!first_flag) {
+//                    start_pts = pFrame->best_effort_timestamp;
+//                    first_flag = true;
+//                }
+
+                pFrameOut->pts = pFrame->best_effort_timestamp;// - start_pts;
+//                pFrameOut->best_effort_timestamp = pFrame->best_effort_timestamp - start_pts;
+//                pFrameOut->pkt_dts = pFrame->pkt_dts;
+//                pFrameOut->pkt_pts = pFrame->pkt_pts;
+//                pFrameOut->pkt_duration = pFrame->pkt_duration;
 
                 pFrameOut->format = AV_PIX_FMT_YUV420P;
-                pFrameOut->width = pCodecCtx->width;
-                pFrameOut->height = pCodecCtx->height;
+                pFrameOut->width = width;//pCodecCtx->width;
+                pFrameOut->height = height;//pCodecCtx->height;
+                
+//                std::cout << "pkt_duration:          " << pFrameOut->pkt_duration << std::endl;
+//                std::cout << "pkt_pos:               " << pFrameOut->pkt_pos << std::endl;
+//                std::cout << "best_effort_timestamp: " << pFrameOut->best_effort_timestamp << std::endl;
+//                std::cout << "pts:                   " << pFrameOut->pts << std::endl;
+//                std::cout << "pkt_dts:               " << pFrameOut->pkt_dts << std::endl;
+//                std::cout << "pkt_pts:               " << pFrameOut->pkt_pts << std::endl;
 
                 FrameKeeper& fk = FrameKeeper::Instance();
                 fk.assigNewFrame(pFrameOut);
@@ -49,6 +77,7 @@ Decoder::~Decoder()
 
 int Decoder::init()
 {
+    std::cout << "Decoder::init" << std::endl;
     // Register all formats and codecs
     av_register_all();
     avdevice_register_all();
@@ -117,11 +146,6 @@ int Decoder::init()
         return -1; // Could not open codec
     }
 
-    // setup size and bitrate
-    bit_rate = pCodecCtx->bit_rate;
-    width = pCodecCtx->width;
-    height = pCodecCtx->height;
-
     // Allocate video frame
     pFrame=av_frame_alloc();
 
@@ -131,9 +155,13 @@ int Decoder::init()
         return -1;
     }
 
+    // setup omitted settings if exists
+    if (-1 == width) width = pCodecCtx->width;
+    if (-1 == height) height = pCodecCtx->height;
+    if (-1 == bit_rate) bit_rate = pCodecCtx->bit_rate;
+
     // Determine required buffer size and allocate buffer
-    numBytes=avpicture_get_size(AV_PIX_FMT_YUV420P, pCodecCtx->width,
-                    pCodecCtx->height);
+    numBytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
     buffer=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
 
     sws_ctx = sws_getContext
@@ -141,10 +169,10 @@ int Decoder::init()
             pCodecCtx->width,
             pCodecCtx->height,
             pCodecCtx->pix_fmt,
-            pCodecCtx->width,
-            pCodecCtx->height,
+            width, // new frame width
+            height, // new frame height
             AV_PIX_FMT_YUV420P,
-            SWS_BILINEAR,
+            SWS_BICUBIC,
             NULL,
             NULL,
             NULL
@@ -153,8 +181,7 @@ int Decoder::init()
     // Assign appropriate parts of buffer to image planes in pFrameOut
     // Note that pFrameOut is an AVFrame, but AVFrame is a superset
     // of AVPicture
-    avpicture_fill((AVPicture *)pFrameOut, buffer, AV_PIX_FMT_YUV420P,
-           pCodecCtx->width, pCodecCtx->height);
+    avpicture_fill((AVPicture *)pFrameOut, buffer, AV_PIX_FMT_YUV420P, width, height);
 
     return 0;
 }
@@ -186,3 +213,4 @@ int Decoder::getHeight()
 {
     return height;
 }
+

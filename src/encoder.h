@@ -31,7 +31,7 @@ class Encoder
 
 public:
   Encoder(std::string out)
-      : pEncodeCodecCtx(NULL), pEncodeCodec(NULL), out_file(out), stop_flag(false) {}
+      : pEncodeCodecCtx(NULL), pEncodeCodec(NULL), out_file(out), stop_flag(false), cur_pts(0) {}
   ~Encoder();
 
   int init(int _bit_rate, int _width, int _height);

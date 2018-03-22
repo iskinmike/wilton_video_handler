@@ -33,29 +33,38 @@ define([
             Logger.initConsole("INFO");
             print("Calling native module ...");
             var settings = {};
+            settings["id"] = 1;
             settings["in"] = "/dev/video0";
             settings["out"] = "out.mp4";
             settings["fmt"] = "video4linux2";
             settings["title"] = "CAM";
+            // settings["width"] = 480;
+            // settings["height"] = 320;
+            // settings["pos_x"] = 800;
+            // settings["pos_y"] = 300;
+            // settings["bit_rate"] = 147456000;
+            settings["photo_name"] = "test.bmp";
+
+
             var resp = wiltoncall("intiHandler", settings);
-            var display_settings = {};
-            display_settings["id"] = resp;
-            display_settings["x"] = 200;
-            display_settings["y"] = 200;
-            print("Call response: [" + resp + "]");
+            // var display_settings = {};
+            // display_settings["id"] = resp;
+            // display_settings["x"] = 200;
+            // display_settings["y"] = 200;
+            // print("Call response: [" + resp + "]");
 
             wiltoncall("startVideoRecord", resp);
-            wiltoncall("displayVideo", display_settings);
+            wiltoncall("displayVideo", resp);
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
                 thread.sleepMillis(1000);
             }
 
-            var photo_settings = {};
-            photo_settings["id"] = resp;
-            photo_settings["out"] = "photo1.bmp";
+            // var photo_settings = {};
+            // photo_settings["id"] = resp;
+            // photo_settings["out"] = "photo1.bmp";
 
-            wiltoncall("makePhoto", photo_settings);
+            wiltoncall("makePhoto", resp);
             thread.sleepMillis(1000);
 
             wiltoncall("stopDisplayVideo", resp);

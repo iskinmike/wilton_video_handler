@@ -2,7 +2,7 @@
 #include "frame_keeper.h"
 #include "stdio.h"
 #include <iostream>
-
+namespace photo{
 int makePhoto(std::string out_file)
 {
     int result = 0;
@@ -17,7 +17,7 @@ int makePhoto(std::string out_file)
     (
         frame->width,
         frame->height,
-        AV_PIX_FMT_YUV420P, //static_cast<AVPixelFormat>(frame->format),//AV_PIX_FMT_YUV420P,
+        AV_PIX_FMT_YUV420P, //static_cast<AVPixelFormat>(frame->format),
         frame->width,
         frame->height,
         AV_PIX_FMT_RGB24,
@@ -27,32 +27,21 @@ int makePhoto(std::string out_file)
         NULL
     );
 
-    frameRGB = av_frame_alloc();//av_frame_clone(frame);
+    frameRGB = av_frame_alloc();
     // Determine required buffer size and allocate buffer
     int numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, frame->width,
                     frame->height);
+    uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
 
-    uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];//av_malloc(numBytes*sizeof(uint8_t));
-
+    //setup buffer for new frame
     avpicture_fill((AVPicture *)frameRGB, buffer, AV_PIX_FMT_RGB24,
            frame->width, frame->height);
 
+    // setup frame sizes
     frameRGB->width = frame->width;
     frameRGB->height = frame->height;
 
-//    std::cout << "TEST**********************" << std::endl;
-
-//    std::cout << "frame->width: " << frame->width << std::endl;
-//    std::cout << "frame->height: " << frame->height << std::endl;
-
-//    std::cout << "numBytes: " << numBytes << std::endl;
-
-//    std::cout << "frameRGB->width: " << frameRGB->width << std::endl;
-//    std::cout << "frameRGB->height: " << frameRGB->height << std::endl;
-
-//    std::cout << "TEST**********************" << std::endl;
-
-
+    // rescale frame to frameRGB
     sws_scale(sws_ctx,
         ((AVPicture*)frame)->data,
         ((AVPicture*)frame)->linesize,
@@ -70,4 +59,5 @@ int makePhoto(std::string out_file)
 
     fclose(file);
     return result;
+}
 }

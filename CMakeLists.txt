@@ -28,9 +28,9 @@ set(SOURCES
     src/decoder.cpp
     src/encoder.cpp
     src/display.cpp
-    src/example.cpp
     src/photo.cpp
-    src/video_api.cpp)
+    src/video_api.cpp
+    src/video_handler.cpp)
 
 set(LIBS 
   avformat

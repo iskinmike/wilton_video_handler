@@ -1,12 +1,6 @@
 #ifndef FRAME_KEEPER_H
 #define FRAME_KEEPER_H
 
-
-//#if __cplusplus < 201103L
-//#define __cplusplus 201103L
-//#endif
-
-
 #include <mutex>
 #include <condition_variable>
 #include <atomic>

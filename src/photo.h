@@ -10,6 +10,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <stdio.h>
 #include <string>
 
+namespace photo{
 int makePhoto(std::string out_file);
-
+}
 #endif  /* MAKE_PHOTO_H */

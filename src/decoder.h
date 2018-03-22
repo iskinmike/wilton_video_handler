@@ -47,11 +47,12 @@ class Decoder
 
     std::atomic_bool stop_flag;
 public:
-  Decoder(std::string in, std::string _format)
+  Decoder(std::string in, std::string _format, int _widtth, int _height, int _bit_rate)
       : filename(in), format(_format),
         pFormatCtx(NULL),file_iformat(NULL),pCodecCtx(NULL),
         pCodec(NULL), optionsDict(NULL), pFrame(NULL),
-        pFrameOut(NULL), sws_ctx(NULL), buffer(NULL), stop_flag(false) {}
+        pFrameOut(NULL), sws_ctx(NULL), buffer(NULL), stop_flag(false),
+        width(_widtth), height(_height), bit_rate(_bit_rate){}
   ~Decoder();
 
   int init();
