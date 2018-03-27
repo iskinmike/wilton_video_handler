@@ -99,7 +99,7 @@ void Display::stopDisplay()
     SDL_DestroyRenderer(renderer);
 }
 
-
+int counter = 0;
 void Display::displayFrame(AVFrame *frame)
 {
     if (nullptr == frame) {
@@ -114,7 +114,7 @@ void Display::displayFrame(AVFrame *frame)
 
     /* Y */
     int x,y;
-    int i = 1;
+    int i = counter++;
     for (y = 0; y < 400; y++)
         for (x = 0; x < 400; x++)
             _frame.data[0][y * _frame.linesize[0] + x] = x + y + i * 3;
@@ -131,26 +131,26 @@ void Display::displayFrame(AVFrame *frame)
 //    std::cout << "frame->linesize[1]: " << _frame.linesize[1] << std::endl;
 //    std::cout << "frame->linesize[2]: " << _frame.linesize[2] << std::endl;
 
-//    SDL_UpdateYUVTexture(
-//        texture,
-//        NULL,
-//        _frame.data[0], //vp->yPlane,
-//        _frame.linesize[0],
-//        _frame.data[1], //vp->yPlane,
-//        _frame.linesize[1],
-//        _frame.data[2], //vp->yPlane,
-//        _frame.linesize[2]
-//    );
     SDL_UpdateYUVTexture(
         texture,
         NULL,
-        frame->data[0], //vp->yPlane,
-        frame->linesize[0],
-        frame->data[1], //vp->yPlane,
-        frame->linesize[1],
-        frame->data[2], //vp->yPlane,
-        frame->linesize[2]
+        _frame.data[0], //vp->yPlane,
+        _frame.linesize[0],
+        _frame.data[1], //vp->yPlane,
+        _frame.linesize[1],
+        _frame.data[2], //vp->yPlane,
+        _frame.linesize[2]
     );
+//    SDL_UpdateYUVTexture(
+//        texture,
+//        NULL,
+//        frame->data[0], //vp->yPlane,
+//        frame->linesize[0],
+//        frame->data[1], //vp->yPlane,
+//        frame->linesize[1],
+//        frame->data[2], //vp->yPlane,
+//        frame->linesize[2]
+//    );
 
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
