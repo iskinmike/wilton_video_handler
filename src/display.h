@@ -12,9 +12,8 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 
 class Display
 {
-    SDL_Renderer* renderer = NULL;
-    SDL_Window     *screen = NULL;
-    SDL_Event       event;
+    SDL_Renderer* renderer;
+    SDL_Window*     screen;
 
     int width;
     int height;
@@ -25,7 +24,7 @@ class Display
     std::atomic_bool stop_flag;
 public:
     Display(const std::string& _title)
-        : title(_title), stop_flag(false){}
+        : renderer(NULL),screen(NULL), title(_title), stop_flag(false){}
     ~Display();
 
     std::string init(int pos_x, int pos_y, int _width, int _height);
