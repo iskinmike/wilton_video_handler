@@ -14,7 +14,6 @@ class Display
 {
     SDL_Renderer* renderer = NULL;
     SDL_Window     *screen = NULL;
-    SDL_Rect        rect;
     SDL_Event       event;
 
     int width;
