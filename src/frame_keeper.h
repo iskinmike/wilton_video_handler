@@ -22,11 +22,13 @@ class FrameKeeper
     };
 
     AVFrame *frame;
+    AVFrame *origin_frame;
     std::mutex mtx;
 
     std::vector<SyncWaiter*> sync_array;
     FrameKeeper(){}
     ~FrameKeeper();
+    void waitNewFrame();
 public:
     static FrameKeeper& Instance()
     {
@@ -37,7 +39,8 @@ public:
     FrameKeeper(FrameKeeper const&) = delete;
     FrameKeeper& operator= (FrameKeeper const&) = delete;
   
-  void assigNewFrame(AVFrame *new_frame);
+  void assigNewFrames(AVFrame *new_frame, AVFrame* new_origin_frame);
   AVFrame* getFrame();
+  AVFrame* getOriginFrame();
 };
 #endif  /* FRAME_KEEPER_H */

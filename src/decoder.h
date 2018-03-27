@@ -20,8 +20,8 @@ void start_decode_video(std::string file_name);
 
 class Decoder
 {
-    std::string      filename;//(argv[1]);
-    std::string      format;//("video4linux2");
+    std::string      filename;
+    std::string      format;// "video4linux2"
     AVFormatContext *pFormatCtx;
     AVInputFormat   *file_iformat;
     AVCodecContext*  pCodecCtx;

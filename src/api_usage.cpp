@@ -11,25 +11,25 @@ using namespace std;
 int main(int argc, char const *argv[])
 {
     /* code */
-//    Decoder dec(argv[1], "video4linux2");
-//    dec.init();
+    VideoSettings set;
+    set.input_file = argv[1];
+    set.output_file = argv[2];
+    set.format = "video4linux2";
+    set.title = "CAM VIDEO";
+    set.width = 640;
+    set.height = 480;
+    set.pos_x = 200;
+    set.pos_y = 200;
+    set.bit_rate = 150000;
+    set.photo_name = "test.bmp";
 
-//    Encoder enc(argv[2]);
-//    enc.init(dec.getBitRate(), dec.getWidth(), dec.getHeight());
-
-//    Display display(std::string("TTTTITLE"));
-//    display.init(200,200, dec.getWidth(), dec.getHeight());
-
-//    dec.startDecoding();
-//    enc.startEncoding();
-//    display.startDisplay();
-
-    VideoAPI api(argv[1], argv[2], "video4linux2", "CAM VIDEO");
+    VideoAPI api(set);
 
     api.startVideoRecord();
-    api.startVideoDisplay(200,200);
+    api.startVideoDisplay();
 
-    for (int i = 0; i <5; ++i){
+    api.makePhoto();
+    for (int i = 0; i <3; ++i){
         sleep(1);
         cout << "sleep: " << i << endl;
     }
@@ -37,9 +37,6 @@ int main(int argc, char const *argv[])
     api.stopVideoDisplay();
     api.stopVideoRecord();
 
-//    enc.stopEncoding();
-//    display.stopDisplay();
-//    dec.stopDecoding();
 
     return 0;
 }

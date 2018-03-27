@@ -3,6 +3,8 @@
 
 void Decoder::runDecoding()
 {
+    bool first_run = true;
+    uint64_t pts_offset = 0;
     while(av_read_frame(pFormatCtx, &packet)>=0) {
         // Is this a packet from the video stream?
         if(packet.stream_index==videoStream) {
@@ -15,14 +17,22 @@ void Decoder::runDecoding()
                     ((AVPicture*)pFrame)->data, ((AVPicture*)pFrame)->linesize, 0,
                     pCodecCtx->height, ((AVPicture *)pFrameOut)->data,
                     ((AVPicture *)pFrameOut)->linesize);
+                if (first_run) {
+                    pts_offset = pFrame->best_effort_timestamp;
+                    first_run =  false;
+                }
 
-                pFrameOut->pts = pFrame->best_effort_timestamp;
+                pFrameOut->pts = pFrame->best_effort_timestamp - pts_offset;
                 pFrameOut->format = AV_PIX_FMT_YUV420P;
                 pFrameOut->width = width;
                 pFrameOut->height = height;
+                pFrameOut->pkt_dts = pFrame->pkt_dts;
+                pFrameOut->pkt_pts = pFrame->pkt_pts;
+                pFrameOut->pkt_duration = pFrame->pkt_duration;
                 
                 FrameKeeper& fk = FrameKeeper::Instance();
-                fk.assigNewFrame(pFrameOut);
+                fk.assigNewFrames(pFrameOut, pFrame);
+                av_frame_unref(pFrame);
             }
         }
 
@@ -37,13 +47,13 @@ void Decoder::runDecoding()
 
 Decoder::~Decoder()
 {
-    if (decoder_thread.joinable()) {
-        decoder_thread.join();
-    }
+    stopDecoding();
     avcodec_close(pCodecCtx);
-    av_free(pCodecCtx);
-    av_free(pFrame);
-    av_free(pFrameOut);
+    avformat_free_context(pFormatCtx);
+    av_frame_free(&pFrame);
+    av_frame_free(&pFrameOut);
+    delete[] buffer;
+    sws_freeContext(sws_ctx);
 }
 
 std::string Decoder::init()
@@ -120,7 +130,7 @@ std::string Decoder::init()
 
     // Determine required buffer size and allocate buffer
     numBytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
-    buffer=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+    buffer = new uint8_t[numBytes*sizeof(uint8_t)];
 
     sws_ctx = sws_getContext
         (

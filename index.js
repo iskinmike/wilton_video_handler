@@ -35,14 +35,14 @@ define([
             var settings = {};
             settings["id"] = 1;
             settings["in"] = "/dev/video0";
-            settings["out"] = "out.avi";
+            settings["out"] = "out.mp4";
             settings["fmt"] = "video4linux2";
             settings["title"] = "CAM";
-            // settings["width"] = 480;
-            // settings["height"] = 320;
+            settings["width"] = 640;
+            settings["height"] = 480;
             // settings["pos_x"] = 800;
             // settings["pos_y"] = 300;
-            // settings["bit_rate"] = 147456000;
+            settings["bit_rate"] = 150000;
             settings["photo_name"] = "test.bmp";
 
 

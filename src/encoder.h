@@ -14,9 +14,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 
 class Encoder
 {
-    AVCodecContext*  pEncodeCodecCtx;
     AVCodec*         pEncodeCodec;
-
     // write structs
     AVFormatContext* pOutFormatCtx;
     AVStream*        pOutStream;
@@ -26,7 +24,7 @@ class Encoder
     int bit_rate;
     int width;
     int height;
-    int64_t cur_pts;
+    bool pts_flag;
 
     FILE *pFile;
     std::thread encoder_thread;
@@ -35,16 +33,17 @@ class Encoder
 
 public:
   Encoder(std::string out)
-      : pEncodeCodecCtx(NULL), pEncodeCodec(NULL), out_file(out),
-        stop_flag(false), cur_pts(0), pOutFormatCtx(NULL), pOutStream(NULL)  {}
+      : pEncodeCodec(NULL), out_file(out),
+        stop_flag(false), pOutFormatCtx(NULL), pOutStream(NULL), pts_flag(false)  {}
   ~Encoder();
 
   std::string init(int _bit_rate, int _width, int _height);
   void startEncoding();
   void stopEncoding();
 
-  void encodeFrame(AVFrame* frame);
+  int encodeFrame(AVFrame* frame);
   void closeFile();
+  void fflushEncoder();
 };
 
 

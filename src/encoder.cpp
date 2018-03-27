@@ -22,12 +22,11 @@ void Encoder::runEncoding()
 
 Encoder::~Encoder()
 {
-    if (encoder_thread.joinable()) {
-        encoder_thread.join();
-    }
-    closeFile();
-    avcodec_close(pEncodeCodecCtx);
-    av_free(pEncodeCodecCtx);
+    stopEncoding();
+    avcodec_close(pOutStream->codec);
+    // automatically set pOutFormatCtx to NULL and frees all its allocated data
+    avformat_flush(pOutFormatCtx);
+    avformat_free_context(pOutFormatCtx);
 }
 
 // OutFormat And OutStream based on muxing.c example by Fabrice Bellard
@@ -38,47 +37,52 @@ std::string Encoder::init(int _bit_rate, int _width, int _height)
     height = _height;
 
     /* allocate the output media context */
-    int ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "avi", NULL);
+    int ret = 0;
+    ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, NULL, out_file.c_str());
     if (0 > ret) {
-        ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, NULL, out_file.c_str());
+        ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, "avi", NULL);
     }
     if (0 > ret) return std::string("Could not allocate output_context");
 
+
     // find encoder codec
-    pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
+    pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_H264);
+//    pEncodeCodec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
     if (!pEncodeCodec) return std::string("Codec not found");
 
     pOutStream = avformat_new_stream(pOutFormatCtx, pEncodeCodec);
     if (!pOutStream) return std::string("Could not allocate stream");
 
-    // set Context and it settings
-    pEncodeCodecCtx = avcodec_alloc_context3(pEncodeCodec);
-    pEncodeCodecCtx->codec_id = pEncodeCodec->id;
-    pEncodeCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
-    pEncodeCodecCtx->gop_size = 1;/* emit one intra frame every twelve frames at most */ //pCodecCtx->gop_size;
-    pEncodeCodecCtx->bit_rate = bit_rate;
-    pEncodeCodecCtx->width = width;
-    pEncodeCodecCtx->height = height;
-    pEncodeCodecCtx->time_base = (AVRational){1,25};
-    pEncodeCodecCtx->max_b_frames = 0;
-    pEncodeCodecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
-    pEncodeCodecCtx->bit_rate_tolerance = bit_rate;
-
+    // set Context settings
+    pOutStream->codec->codec_id = pEncodeCodec->id;
+    pOutStream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+    pOutStream->codec->gop_size = 12;/* emit one intra frame every twelve frames at most */
+    pOutStream->codec->bit_rate = bit_rate;
+    pOutStream->codec->width = width;
+    pOutStream->codec->height = height;
+    pOutStream->codec->time_base = av_make_q(1,30); // empirical value. Lower value cause non monotonical pts errors
+    pOutStream->codec->max_b_frames = 0;
+    pOutStream->codec->pix_fmt = AV_PIX_FMT_YUV420P;
+    pOutStream->codec->bit_rate_tolerance = bit_rate;
+    pOutStream->codec->ticks_per_frame = 2; // for H.264 codec
 
     pOutStream->id = pOutFormatCtx->nb_streams-1;
-    ret = avcodec_copy_context(pOutStream->codec, pEncodeCodecCtx);
-    if (0 > ret) {
-        return std::string("Failed to copy context from input to output stream codec context");
-    }
 
-    if(avcodec_open2(pEncodeCodecCtx, pEncodeCodec, NULL)<0) {
+    // Container requires header but codec not, so we need to setup flag for codec to supress warning.
+    pOutStream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+    // need open codec
+    if(avcodec_open2(pOutStream->codec, pEncodeCodec, NULL)<0) {
         return std::string("Can't open codec to encode");
     }
+
     /* timebase: This is the fundamental unit of time (in seconds) in terms
      * of which frame timestamps are represented. For fixed-fps content,
      * timebase should be 1/framerate and timestamp increments should be
-     * identical to 1. */
-    pOutStream->time_base = pEncodeCodecCtx->time_base;
+     * identical to 1. Actually this setup now only suppress deprecated warning.
+     * time_base resetted by libavcodec after avformat_write_header() so
+     * pOutStream->time_base not equal to pOutStream->codec->time_base after that call */
+    pOutStream->time_base = pOutStream->codec->time_base;
 
     av_dump_format(pOutFormatCtx, 0, out_file.c_str(), 1);
 
@@ -87,8 +91,7 @@ std::string Encoder::init(int _bit_rate, int _width, int _height)
     if (0 > ret) {
         return (std::string("Could not open ") + out_file);
     }
-
-    // header is musthave for
+    // header is musthave for this
     avformat_write_header(pOutFormatCtx, NULL);
 
     return std::string{};
@@ -97,7 +100,6 @@ std::string Encoder::init(int _bit_rate, int _width, int _height)
 void Encoder::startEncoding()
 {
     // start wait to frame keeper signal
-    cur_pts = 0;
     encoder_thread = std::thread([this] {return this->runEncoding();});
 }
 
@@ -107,15 +109,12 @@ void Encoder::stopEncoding()
     if (encoder_thread.joinable()) {
         encoder_thread.join();
     }
+    fflushEncoder();
     closeFile();
 }
 
-void Encoder::encodeFrame(AVFrame* frame)
+int Encoder::encodeFrame(AVFrame* frame)
 {
-    if (nullptr == frame) {
-        return;
-    }
-
     int out_size = 0;
     int got_pack = 0;
 
@@ -124,21 +123,35 @@ void Encoder::encodeFrame(AVFrame* frame)
     tmp_pack.data = NULL; // for autoinit
     tmp_pack.size = 0;
 
-    out_size = avcodec_encode_video2(pEncodeCodecCtx, &tmp_pack, frame, &got_pack);
-    // reset pts for MPEG4 format
-    tmp_pack.pts = tmp_pack.dts = cur_pts;
-    if (got_pack) {
-        write_frame(pOutFormatCtx, &pEncodeCodecCtx->time_base, pOutStream, &tmp_pack);
+    if (frame != NULL) {
+        // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
+        // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
+        frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, pOutStream->codec->time_base);
     }
-    // increment pts
-    cur_pts++;
 
-    av_free(frame);
+    out_size = avcodec_encode_video2(pOutStream->codec, &tmp_pack, frame, &got_pack);
+
+    if (got_pack) {
+        write_frame(pOutFormatCtx, &pOutStream->codec->time_base, pOutStream, &tmp_pack);
+    }
+
+    av_frame_free(&frame);
+    av_free_packet(&tmp_pack);
+    return got_pack;
 }
 
 void Encoder::closeFile()
 {
-    if (NULL != pOutFormatCtx->pb){
-        avio_closep(&(pOutFormatCtx->pb));
+    if (NULL != pOutFormatCtx) {
+        // need to write trailer to finalize video file
+        if (NULL != pOutFormatCtx->pb){
+            av_write_trailer(pOutFormatCtx);
+            avio_closep(&(pOutFormatCtx->pb));
+        }
     }
+}
+
+void Encoder::fflushEncoder()
+{
+    while (encodeFrame(NULL));
 }

@@ -73,5 +73,5 @@ void Display::displayFrame(AVFrame *frame)
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
     SDL_DestroyTexture(texture);
-    av_free(frame);
+    av_frame_free(&frame);
 }

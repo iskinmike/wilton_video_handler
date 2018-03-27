@@ -12,7 +12,7 @@ std::string makePhoto(std::string out_file)
     struct SwsContext* sws_ctx;
 
     FrameKeeper& fk = FrameKeeper::Instance();
-    AVFrame* frame = fk.getFrame();
+    AVFrame* frame = fk.getOriginFrame();
 
     if (nullptr == frame) {
         return std::string("Can't make Photo. Get 'NULL'' frame.");
@@ -22,7 +22,7 @@ std::string makePhoto(std::string out_file)
     (
         frame->width,
         frame->height,
-        AV_PIX_FMT_YUV420P, //static_cast<AVPixelFormat>(frame->format),
+        static_cast<AVPixelFormat>(frame->format),
         frame->width,
         frame->height,
         AV_PIX_FMT_RGB24,
@@ -63,6 +63,8 @@ std::string makePhoto(std::string out_file)
     fwrite(frameRGB->data[0]+y*frameRGB->linesize[0], 1, frameRGB->width*3, file);
 
     fclose(file);
+    av_frame_free(&frame);
+    av_frame_free(&frameRGB);
     return std::string{};
 }
 }
