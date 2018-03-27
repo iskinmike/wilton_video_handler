@@ -22,6 +22,11 @@ set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR} CACHE INT
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
+set ( PLATFORM_INCLUDE "")
+
+if(EXISTS "/etc/redhat-release")
+     set ( PLATFORM_INCLUDE "/usr/include/ffmpeg")
+endif(EXISTS "/etc/redhat-release")
 
 set(SOURCES
     src/frame_keeper.cpp
@@ -59,6 +64,7 @@ add_library ( ${PROJECT_NAME} SHARED
 target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
         $ENV{WILTON_HOME}/devel/include
         ${WILTON_HEADERS_DIRS}
+        ${PLATFORM_INCLUDE}
         ${STATICLIBS_HEADERS_DIRS})
 
 if ( WIN32 )

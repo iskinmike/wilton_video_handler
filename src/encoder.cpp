@@ -2,6 +2,10 @@
 #include "encoder.h"
 #include "frame_keeper.h"
 
+#ifndef AV_CODEC_FLAG_GLOBAL_HEADER
+        #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER
+#endif
+
 static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
 {
     /* rescale output packet timestamp values from codec to stream timebase */
