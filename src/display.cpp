@@ -107,7 +107,7 @@ void Display::displayFrame(AVFrame *frame)
     }
 
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
-                            SDL_TEXTUREACCESS_TARGET, 400, 400);
+                            SDL_TEXTUREACCESS_TARGET, width, height);
     _frame.linesize[0] = 400;
     _frame.linesize[1] = 200;
     _frame.linesize[2] = 200;
@@ -127,19 +127,29 @@ void Display::displayFrame(AVFrame *frame)
         }
     }
 
-    std::cout << "frame->linesize[0]: " << _frame.linesize[0] << std::endl;
-    std::cout << "frame->linesize[1]: " << _frame.linesize[1] << std::endl;
-    std::cout << "frame->linesize[2]: " << _frame.linesize[2] << std::endl;
+    std::cout << "texture: " << texture << std::endl;
+//    std::cout << "frame->linesize[1]: " << _frame.linesize[1] << std::endl;
+//    std::cout << "frame->linesize[2]: " << _frame.linesize[2] << std::endl;
 
+//    SDL_UpdateYUVTexture(
+//        texture,
+//        NULL,
+//        _frame.data[0], //vp->yPlane,
+//        _frame.linesize[0],
+//        _frame.data[1], //vp->yPlane,
+//        _frame.linesize[1],
+//        _frame.data[2], //vp->yPlane,
+//        _frame.linesize[2]
+//    );
     SDL_UpdateYUVTexture(
         texture,
         NULL,
-        _frame.data[0], //vp->yPlane,
-        _frame.linesize[0],
-        _frame.data[1], //vp->yPlane,
-        _frame.linesize[1],
-        _frame.data[2], //vp->yPlane,
-        _frame.linesize[2]
+        frame->data[0], //vp->yPlane,
+        frame->linesize[0],
+        frame->data[1], //vp->yPlane,
+        frame->linesize[1],
+        frame->data[2], //vp->yPlane,
+        frame->linesize[2]
     );
 
     SDL_RenderClear(renderer);

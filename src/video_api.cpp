@@ -33,7 +33,7 @@ std::string VideoAPI::startVideoDisplay()
     result = display->init((-1 == settings.pos_x) ? 100 : settings.pos_x,
             (-1 == settings.pos_y) ? 100 : settings.pos_y,
             decoder->getWidth(), decoder->getHeight());
-//    display->startDisplay();
+    display->startDisplay();
     return result;
 }
 
