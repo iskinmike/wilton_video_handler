@@ -4,9 +4,9 @@
 
 void Display::runDisplay()
 {
-    auto fk = shared_framekeeper();
+    FrameKeeper& fk = FrameKeeper::Instance();
     while (!stop_flag) {
-        displayFrame(fk->getFrame());
+        displayFrame(fk.getFrame());
     }
     stop_flag.exchange(false);
 }

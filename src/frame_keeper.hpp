@@ -29,8 +29,11 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libswscale/swscale.h>
 }
 
+// Try to do it as Meyerce's Singletone [https://ru.stackoverflow.com/questions/327136/singleton-%D0%B8-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F]
 class FrameKeeper
 {
+    static std::mutex instance_mtx;
+
     std::mutex cond_mtx;
     struct SyncWaiter {
         std::atomic_bool flag;
@@ -43,9 +46,16 @@ class FrameKeeper
 
     std::vector<SyncWaiter*> sync_array;
     void waitNewFrame();
-public:
     ~FrameKeeper();
     FrameKeeper(){}
+public:
+    static FrameKeeper& Instance()
+    {
+        // Not thread safe in vs2013
+        std::lock_guard<std::mutex> lock(instance_mtx);
+        static FrameKeeper fk;
+        return fk;
+    }
     FrameKeeper(FrameKeeper const&) = delete;
     FrameKeeper& operator= (FrameKeeper const&) = delete;
   
@@ -53,8 +63,5 @@ public:
   AVFrame* getFrame();
   AVFrame* getOriginFrame();
 };
-
-// Meyer's Singletone is not thread Safe on some windows realisations, so we use a hack with shared_framekeeper();
-std::shared_ptr<FrameKeeper> shared_framekeeper();
 
 #endif  /* FRAME_KEEPER_HPP */

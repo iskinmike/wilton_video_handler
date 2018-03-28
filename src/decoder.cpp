@@ -31,8 +31,8 @@ void Decoder::runDecoding()
                 pFrameOut->pkt_pts = pFrame->pkt_pts;
                 pFrameOut->pkt_duration = pFrame->pkt_duration;
                 
-                auto fk = shared_framekeeper();
-                fk->assigNewFrames(pFrameOut, pFrame);
+                FrameKeeper& fk = FrameKeeper::Instance();
+                fk.assigNewFrames(pFrameOut, pFrame);
                 av_frame_unref(pFrame);
             }
         }
