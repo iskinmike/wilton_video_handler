@@ -1,5 +1,6 @@
 /*
  * Copyright 2018, alex at staticlibs.net
+ * Copyright 2018, myasnikov.mike at gmail.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@
 
 /* 
  * File:   example.cpp
- * Author: alex
+ * Authorы: alex, mike
  *
- * Created on February 12, 2018, 9:22 PM
+ * Created on March 28, 2018, 16:32 PM
  */
 
 #include <cstring>

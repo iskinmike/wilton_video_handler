@@ -28,8 +28,8 @@ Encoder::~Encoder()
 {
     stopEncoding();
     avcodec_close(pOutStream->codec);
-    // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_flush(pOutFormatCtx);
+    // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_free_context(pOutFormatCtx);
 }
 
