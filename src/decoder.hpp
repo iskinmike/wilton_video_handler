@@ -1,5 +1,5 @@
-#ifndef DECODER_H
-#define DECODER_H
+#ifndef DECODER_HPP
+#define DECODER_HPP
 
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
@@ -9,7 +9,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libavdevice/avdevice.h> // installed libavdevice-dev
 }
 
-#include "frame_keeper.h"
+#include "frame_keeper.hpp"
 #include <string>
 #include <stdio.h>
 #include <iostream>
@@ -66,4 +66,4 @@ public:
 
 };
 
-#endif  /* DECODER_H */
+#endif  /* DECODER_HPP */

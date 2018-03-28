@@ -1,5 +1,5 @@
-#ifndef ENCODER_H
-#define ENCODER_H
+#ifndef ENCODER_HPP
+#define ENCODER_HPP
 
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
@@ -48,4 +48,4 @@ public:
 
 
 
-#endif  /* ENCODER_H */
+#endif  /* ENCODER_HPP */

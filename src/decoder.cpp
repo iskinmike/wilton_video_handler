@@ -1,5 +1,5 @@
 
-#include "decoder.h"
+#include "decoder.hpp"
 
 void Decoder::runDecoding()
 {

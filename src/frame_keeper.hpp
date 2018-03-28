@@ -1,5 +1,5 @@
-#ifndef FRAME_KEEPER_H
-#define FRAME_KEEPER_H
+#ifndef FRAME_KEEPER_HPP
+#define FRAME_KEEPER_HPP
 
 #include <mutex>
 #include <condition_variable>
@@ -43,4 +43,4 @@ public:
   AVFrame* getFrame();
   AVFrame* getOriginFrame();
 };
-#endif  /* FRAME_KEEPER_H */
+#endif  /* FRAME_KEEPER_HPP */

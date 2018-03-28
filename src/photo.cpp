@@ -1,5 +1,5 @@
-#include "photo.h"
-#include "frame_keeper.h"
+#include "photo.hpp"
+#include "frame_keeper.hpp"
 #include "stdio.h"
 namespace photo{
 std::string makePhoto(std::string out_file)

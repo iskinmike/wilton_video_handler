@@ -30,7 +30,7 @@
 #include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
-#include "video_api.h"
+#include "video_api.hpp"
 
 namespace video_handler {
 

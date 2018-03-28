@@ -1,6 +1,6 @@
 
-#include "encoder.h"
-#include "frame_keeper.h"
+#include "encoder.hpp"
+#include "frame_keeper.hpp"
 
 #ifndef AV_CODEC_FLAG_GLOBAL_HEADER
         #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER

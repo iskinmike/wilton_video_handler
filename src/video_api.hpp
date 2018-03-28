@@ -1,10 +1,10 @@
-#ifndef VIDEO_API_H
-#define VIDEO_API_H
+#ifndef VIDEO_API_HPP
+#define VIDEO_API_HPP
 
-#include "decoder.h"
-#include "encoder.h"
-#include "display.h"
-#include "photo.h"
+#include "decoder.hpp"
+#include "encoder.hpp"
+#include "display.hpp"
+#include "photo.hpp"
 #include <iostream>
 #include <memory>
 
@@ -40,4 +40,4 @@ public:
 
 
 
-#endif  /* VIDEO_API_H */
+#endif  /* VIDEO_API_HPP */

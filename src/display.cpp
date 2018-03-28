@@ -1,6 +1,6 @@
 
-#include "display.h"
-#include "frame_keeper.h"
+#include "display.hpp"
+#include "frame_keeper.hpp"
 
 void Display::runDisplay()
 {
