@@ -1,6 +1,6 @@
 
-#include "encoder.h"
-#include "frame_keeper.h"
+#include "encoder.hpp"
+#include "frame_keeper.hpp"
 
 #ifndef AV_CODEC_FLAG_GLOBAL_HEADER
         #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER
@@ -17,9 +17,9 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void Encoder::runEncoding()
 {
-    FrameKeeper& fk = FrameKeeper::Instance();
+    auto fk = shared_framekeeper();
     while (!stop_flag) {
-        encodeFrame(fk.getFrame());
+        encodeFrame(fk->getFrame());
     }
     stop_flag.exchange(false);
 }
@@ -28,8 +28,8 @@ Encoder::~Encoder()
 {
     stopEncoding();
     avcodec_close(pOutStream->codec);
-    // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_flush(pOutFormatCtx);
+    // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_free_context(pOutFormatCtx);
 }
 

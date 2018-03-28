@@ -1,5 +1,21 @@
-#ifndef DECODER_H
-#define DECODER_H
+/*
+ * Copyright 2018, myasnikov.mike at gmail.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef DECODER_HPP
+#define DECODER_HPP
 
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
@@ -9,7 +25,6 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libavdevice/avdevice.h> // installed libavdevice-dev
 }
 
-#include "frame_keeper.h"
 #include <string>
 #include <stdio.h>
 #include <iostream>
@@ -21,7 +36,7 @@ void start_decode_video(std::string file_name);
 class Decoder
 {
     std::string      filename;
-    std::string      format;// "video4linux2"
+    std::string      format;
     AVFormatContext *pFormatCtx;
     AVInputFormat   *file_iformat;
     AVCodecContext*  pCodecCtx;
@@ -66,4 +81,4 @@ public:
 
 };
 
-#endif  /* DECODER_H */
+#endif  /* DECODER_HPP */

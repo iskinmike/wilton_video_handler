@@ -1,5 +1,6 @@
 
-#include "decoder.h"
+#include "decoder.hpp"
+#include "frame_keeper.hpp"
 
 void Decoder::runDecoding()
 {
@@ -30,8 +31,8 @@ void Decoder::runDecoding()
                 pFrameOut->pkt_pts = pFrame->pkt_pts;
                 pFrameOut->pkt_duration = pFrame->pkt_duration;
                 
-                FrameKeeper& fk = FrameKeeper::Instance();
-                fk.assigNewFrames(pFrameOut, pFrame);
+                auto fk = shared_framekeeper();
+                fk->assigNewFrames(pFrameOut, pFrame);
                 av_frame_unref(pFrame);
             }
         }

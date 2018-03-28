@@ -1,5 +1,5 @@
-#include "photo.h"
-#include "frame_keeper.h"
+#include "photo.hpp"
+#include "frame_keeper.hpp"
 #include "stdio.h"
 namespace photo{
 std::string makePhoto(std::string out_file)
@@ -11,8 +11,8 @@ std::string makePhoto(std::string out_file)
     AVFrame* frameRGB;
     struct SwsContext* sws_ctx;
 
-    FrameKeeper& fk = FrameKeeper::Instance();
-    AVFrame* frame = fk.getOriginFrame();
+    auto fk = shared_framekeeper();
+    AVFrame* frame = fk->getOriginFrame();
 
     if (nullptr == frame) {
         return std::string("Can't make Photo. Get 'NULL'' frame.");

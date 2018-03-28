@@ -1,5 +1,6 @@
 /*
  * Copyright 2018, alex at staticlibs.net
+ * Copyright 2018, myasnikov.mike at gmail.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@
 
 /* 
  * File:   example.cpp
- * Author: alex
+ * Authorы: alex, mike
  *
- * Created on February 12, 2018, 9:22 PM
+ * Created on March 28, 2018, 16:32 PM
  */
 
 #include <cstring>
@@ -30,7 +31,7 @@
 #include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
-#include "video_api.h"
+#include "video_api.hpp"
 
 namespace video_handler {
 
@@ -38,7 +39,7 @@ namespace { //anonymous
 std::map<int,std::shared_ptr<VideoAPI>> vhandlers_keeper;
 }
 
-int intiHandler(int id, const std::string& in, const std::string& out,
+int av_inti_handler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
                 const int& height, const int& pos_x, const int& pos_y, const int& bit_rate){
     VideoSettings set;
@@ -58,25 +59,25 @@ int intiHandler(int id, const std::string& in, const std::string& out,
     return id;
 }
 
-std::string startVideoRecord(int id){
+std::string av_start_video_record(int id){
     return vhandlers_keeper[id]->startVideoRecord();
 }
 
-std::string displayVideo(int id){
+std::string av_start_display_video(int id){
     return vhandlers_keeper[id]->startVideoDisplay();
 }
 
-std::string stopVideoRecord(int id){
+std::string av_stop_video_record(int id){
     vhandlers_keeper[id]->stopVideoRecord();
     return std::string{};
 }
 
-std::string stopDisplayVideo(int id){
+std::string av_stop_display_video(int id){
     vhandlers_keeper[id]->stopVideoDisplay();
     return std::string{};
 }
 
-std::string makePhoto(int id){
+std::string av_make_photo(int id){
     return vhandlers_keeper[id]->makePhoto();
 }
 
@@ -161,7 +162,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'photo_name' not specified"));
 
-        std::string output = std::to_string(fun(id, in, out, fmt, title, photo_name,
+        std::string output = sl::support::to_string(fun(id, in, out, fmt, title, photo_name,
                 width, height, pos_x, pos_y, bit_rate));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
@@ -172,8 +173,14 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         }
         *data_out_len = static_cast<int>(output.length());
         return nullptr;
+
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
     } catch (...) {
-        auto what = std::string("CALL ERROR"); // std::string(e.what());
+        auto what = std::string("CALL ERROR");
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
         std::memcpy(err, what.c_str(), what.length() + 1);
         return err;
@@ -191,38 +198,38 @@ __declspec(dllexport)
 char* wilton_module_init() {
     char* err = nullptr;
 
-    // register 'startVideoRecord' function
-    auto name_startVideoRecord = std::string("startVideoRecord");
-    err = wiltoncall_register(name_startVideoRecord.c_str(), static_cast<int> (name_startVideoRecord.length()),
-            reinterpret_cast<void*> (video_handler::startVideoRecord), video_handler::vahandler_wrapper);
+    // register 'av_start_video_record' function
+    auto name_av_start_video_record = std::string("av_start_video_record");
+    err = wiltoncall_register(name_av_start_video_record.c_str(), static_cast<int> (name_av_start_video_record.length()),
+            reinterpret_cast<void*> (video_handler::av_start_video_record), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-    // register 'stopVideoRecord' function
-    auto name_stopVideoRecord = std::string("stopVideoRecord");
-    err = wiltoncall_register(name_stopVideoRecord.c_str(), static_cast<int> (name_stopVideoRecord.length()),
-            reinterpret_cast<void*> (video_handler::stopVideoRecord), video_handler::vahandler_wrapper);
+    // register 'av_stop_video_record' function
+    auto name_av_stop_video_record = std::string("av_stop_video_record");
+    err = wiltoncall_register(name_av_stop_video_record.c_str(), static_cast<int> (name_av_stop_video_record.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_video_record), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-    // register 'stopDisplayVideo' function
-    auto name_stopDisplayVideo = std::string("stopDisplayVideo");
-    err = wiltoncall_register(name_stopDisplayVideo.c_str(), static_cast<int> (name_stopDisplayVideo.length()),
-            reinterpret_cast<void*> (video_handler::stopDisplayVideo), video_handler::vahandler_wrapper);
-    if (nullptr != err) return err;
-
-    // register 'displayVideo' function
-    auto name_displayVideo = std::string("displayVideo");
-    err = wiltoncall_register(name_displayVideo.c_str(), static_cast<int> (name_displayVideo.length()),
-            reinterpret_cast<void*> (video_handler::displayVideo), video_handler::vahandler_wrapper);
+    // register 'av_stop_display_video' function
+    auto name_av_stop_display_video = std::string("av_stop_display_video");
+    err = wiltoncall_register(name_av_stop_display_video.c_str(), static_cast<int> (name_av_stop_display_video.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_display_video), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
-    // register 'intiHandler' function
-    auto name_intiHandler = std::string("intiHandler");
-    err = wiltoncall_register(name_intiHandler.c_str(), static_cast<int> (name_intiHandler.length()),
-            reinterpret_cast<void*> (video_handler::intiHandler), video_handler::vahandler_wrapper_init);
+    // register 'av_start_display_video' function
+    auto name_av_start_display_video = std::string("av_start_display_video");
+    err = wiltoncall_register(name_av_start_display_video.c_str(), static_cast<int> (name_av_start_display_video.length()),
+            reinterpret_cast<void*> (video_handler::av_start_display_video), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
-    // register 'makePhoto' function
-    auto name_makePhoto = std::string("makePhoto");
-    err = wiltoncall_register(name_makePhoto.c_str(), static_cast<int> (name_makePhoto.length()),
-            reinterpret_cast<void*> (video_handler::makePhoto), video_handler::vahandler_wrapper);
+    // register 'av_make_photo' function
+    auto name_av_make_photo = std::string("av_make_photo");
+    err = wiltoncall_register(name_av_make_photo.c_str(), static_cast<int> (name_av_make_photo.length()),
+            reinterpret_cast<void*> (video_handler::av_make_photo), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+
+    // register 'av_inti_handler' function
+    auto name_av_inti_handler = std::string("av_inti_handler");
+    err = wiltoncall_register(name_av_inti_handler.c_str(), static_cast<int> (name_av_inti_handler.length()),
+            reinterpret_cast<void*> (video_handler::av_inti_handler), video_handler::vahandler_wrapper_init);
     if (nullptr != err) return err;
 
     // return success
