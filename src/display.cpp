@@ -11,6 +11,19 @@ void Display::runDisplay()
     stop_flag.exchange(false);
 }
 
+std::string Display::waitResult(){
+    sync_point.flag.exchange(false);
+    std::unique_lock<std::mutex> lck(cond_mtx);
+    while (!sync_point.flag) sync_point.cond.wait_for(lck, std::chrono::seconds(4));
+    return init_result;
+}
+
+void Display::sendResult(std::string result){
+    init_result = result;
+    sync_point.flag.exchange(true);
+    sync_point.cond.notify_all();
+}
+
 Display::~Display(){
     if (display_thread.joinable()) {
         display_thread.join();
@@ -34,12 +47,23 @@ std::string Display::init(int pos_x, int pos_y, int _width, int _height)
     if (!renderer) {
         return std::string("SDL: could not create renderer - exiting");
     }
+
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
+                            SDL_TEXTUREACCESS_STREAMING, width, height);
+    if (!texture) {
+        return std::string("SDL: could not create texture - exiting");
+    }
+
     return std::string{};
 }
 
-void Display::startDisplay()
+std::string Display::startDisplay(int pos_x, int pos_y, int _width, int _height)
 {
-    display_thread = std::thread([this] {return this->runDisplay();});
+    display_thread = std::thread([this, pos_x, pos_y, _width, _height] {
+        sendResult(init(pos_x, pos_y, _width, _height));
+        return this->runDisplay();
+    });
+    return waitResult();
 }
 
 void Display::stopDisplay()
@@ -54,10 +78,7 @@ void Display::displayFrame(AVFrame *frame)
 {
     if (nullptr == frame) {
         return;
-    }
-
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
-                            SDL_TEXTUREACCESS_STREAMING, width, height);
+    }   
 
     SDL_UpdateYUVTexture(
         texture,
@@ -72,6 +93,5 @@ void Display::displayFrame(AVFrame *frame)
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    SDL_DestroyTexture(texture);
     av_frame_free(&frame);
 }

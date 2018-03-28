@@ -29,12 +29,14 @@ std::string VideoAPI::startVideoRecord()
 
 std::string VideoAPI::startVideoDisplay()
 {
-    auto result = std::string{};
-    result = display->init((-1 == settings.pos_x) ? 100 : settings.pos_x,
-            (-1 == settings.pos_y) ? 100 : settings.pos_y,
-            decoder->getWidth(), decoder->getHeight());
-    display->startDisplay();
-    return result;
+//    auto result = std::string{};
+//    result = display->init((-1 == settings.pos_x) ? 100 : settings.pos_x,
+//            (-1 == settings.pos_y) ? 100 : settings.pos_y,
+//            decoder->getWidth(), decoder->getHeight());
+//    display->startDisplay();
+    return display->startDisplay((-1 == settings.pos_x) ? 100 : settings.pos_x,
+                                 (-1 == settings.pos_y) ? 100 : settings.pos_y,
+                                 decoder->getWidth(), decoder->getHeight());
 }
 
 void VideoAPI::stopVideoRecord()
