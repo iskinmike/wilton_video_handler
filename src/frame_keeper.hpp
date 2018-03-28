@@ -1,6 +1,7 @@
 #ifndef FRAME_KEEPER_HPP
 #define FRAME_KEEPER_HPP
 
+#include <memory>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
@@ -26,16 +27,16 @@ class FrameKeeper
     std::mutex mtx;
 
     std::vector<SyncWaiter*> sync_array;
-    FrameKeeper(){}
-    ~FrameKeeper();
     void waitNewFrame();
 public:
-    static FrameKeeper& Instance()
-    {
-        // согласно стандарту, этот код ленивый и потокобезопасный
-        static FrameKeeper fk;
-        return fk;
-    }
+    ~FrameKeeper();
+    FrameKeeper(){}
+//    static FrameKeeper& Instance()
+//    {
+//        // согласно стандарту, этот код ленивый и потокобезопасный
+//        static FrameKeeper fk;
+//        return fk;
+//    }
     FrameKeeper(FrameKeeper const&) = delete;
     FrameKeeper& operator= (FrameKeeper const&) = delete;
   
@@ -43,4 +44,7 @@ public:
   AVFrame* getFrame();
   AVFrame* getOriginFrame();
 };
+
+// initialized from wilton_module_init
+std::shared_ptr<FrameKeeper> shared_framekeeper();
 #endif  /* FRAME_KEEPER_HPP */

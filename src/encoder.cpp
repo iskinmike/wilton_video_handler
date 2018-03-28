@@ -17,9 +17,9 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void Encoder::runEncoding()
 {
-    FrameKeeper& fk = FrameKeeper::Instance();
+    auto fk = shared_framekeeper();
     while (!stop_flag) {
-        encodeFrame(fk.getFrame());
+        encodeFrame(fk->getFrame());
     }
     stop_flag.exchange(false);
 }

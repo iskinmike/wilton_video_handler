@@ -46,15 +46,15 @@ define([
             settings["photo_name"] = "test.bmp";
 
 
-            var resp = wiltoncall("intiHandler", settings);
+            var resp = wiltoncall("av_inti_handler", settings);
             // var display_settings = {};
             // display_settings["id"] = resp;
             // display_settings["x"] = 200;
             // display_settings["y"] = 200;
             // print("Call response: [" + resp + "]");
 
-            wiltoncall("startVideoRecord", resp);
-            wiltoncall("displayVideo", resp);
+            wiltoncall("av_start_video_record", 1);
+            wiltoncall("av_start_display_video", resp);
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
                 thread.sleepMillis(1000);
@@ -64,11 +64,11 @@ define([
             // photo_settings["id"] = resp;
             // photo_settings["out"] = "photo1.bmp";
 
-            wiltoncall("makePhoto", resp);
+            wiltoncall("av_make_photo", resp);
             thread.sleepMillis(1000);
 
-            wiltoncall("stopDisplayVideo", resp);
-            wiltoncall("stopVideoRecord", resp);
+            wiltoncall("av_stop_display_video", resp);
+            wiltoncall("av_stop_video_record", resp);
         }
     };
 });

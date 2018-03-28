@@ -43,4 +43,7 @@ AVFrame* FrameKeeper::getOriginFrame()
     return av_frame_clone(origin_frame);
 }
 
-
+std::shared_ptr<FrameKeeper> shared_framekeeper() {
+    static auto fk = std::make_shared<FrameKeeper>();
+    return fk;
+}

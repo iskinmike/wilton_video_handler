@@ -9,7 +9,6 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libavdevice/avdevice.h> // installed libavdevice-dev
 }
 
-#include "frame_keeper.hpp"
 #include <string>
 #include <stdio.h>
 #include <iostream>

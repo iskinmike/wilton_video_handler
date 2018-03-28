@@ -11,8 +11,8 @@ std::string makePhoto(std::string out_file)
     AVFrame* frameRGB;
     struct SwsContext* sws_ctx;
 
-    FrameKeeper& fk = FrameKeeper::Instance();
-    AVFrame* frame = fk.getOriginFrame();
+    auto fk = shared_framekeeper();
+    AVFrame* frame = fk->getOriginFrame();
 
     if (nullptr == frame) {
         return std::string("Can't make Photo. Get 'NULL'' frame.");
