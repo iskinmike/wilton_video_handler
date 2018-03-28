@@ -2,38 +2,38 @@
 #include "decoder.hpp"
 #include "frame_keeper.hpp"
 
-void Decoder::runDecoding()
+void decoder::run_decoding()
 {
     bool first_run = true;
     uint64_t pts_offset = 0;
-    while(av_read_frame(pFormatCtx, &packet)>=0) {
+    while(av_read_frame(format_ctx, &packet)>=0) {
         // Is this a packet from the video stream?
-        if(packet.stream_index==videoStream) {
+        if(packet.stream_index==video_stream) {
             // Decode video frame
-            avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+            avcodec_decode_video2(codec_ctx, frame, &frame_finished, &packet);
             // Did we get a video frame?
-            if(frameFinished) {
+            if(frame_finished) {
                 // Convert the image from its native format to AV_PIX_FMT_YUV420P
                 sws_scale(sws_ctx,
-                    ((AVPicture*)pFrame)->data, ((AVPicture*)pFrame)->linesize, 0,
-                    pCodecCtx->height, ((AVPicture *)pFrameOut)->data,
-                    ((AVPicture *)pFrameOut)->linesize);
+                    ((AVPicture*)frame)->data, ((AVPicture*)frame)->linesize, 0,
+                    codec_ctx->height, ((AVPicture *)frame_out)->data,
+                    ((AVPicture *)frame_out)->linesize);
                 if (first_run) {
-                    pts_offset = pFrame->best_effort_timestamp;
+                    pts_offset = frame->best_effort_timestamp;
                     first_run =  false;
                 }
 
-                pFrameOut->pts = pFrame->best_effort_timestamp - pts_offset;
-                pFrameOut->format = AV_PIX_FMT_YUV420P;
-                pFrameOut->width = width;
-                pFrameOut->height = height;
-                pFrameOut->pkt_dts = pFrame->pkt_dts;
-                pFrameOut->pkt_pts = pFrame->pkt_pts;
-                pFrameOut->pkt_duration = pFrame->pkt_duration;
+                frame_out->pts = frame->best_effort_timestamp - pts_offset;
+                frame_out->format = AV_PIX_FMT_YUV420P;
+                frame_out->width = width;
+                frame_out->height = height;
+                frame_out->pkt_dts = frame->pkt_dts;
+                frame_out->pkt_pts = frame->pkt_pts;
+                frame_out->pkt_duration = frame->pkt_duration;
                 
-                FrameKeeper& fk = FrameKeeper::Instance();
-                fk.assigNewFrames(pFrameOut, pFrame);
-                av_frame_unref(pFrame);
+                frame_keeper& fk = frame_keeper::instance();
+                fk.assig_new_frames(frame_out, frame);
+                av_frame_unref(frame);
             }
         }
 
@@ -46,26 +46,26 @@ void Decoder::runDecoding()
     stop_flag.exchange(false);
 }
 
-Decoder::~Decoder()
+decoder::~decoder()
 {
-    stopDecoding();
-    avcodec_close(pCodecCtx);
-    avformat_free_context(pFormatCtx);
-    av_frame_free(&pFrame);
-    av_frame_free(&pFrameOut);
+    stop_decoding();
+    avcodec_close(codec_ctx);
+    avformat_free_context(format_ctx);
+    av_frame_free(&frame);
+    av_frame_free(&frame_out);
     delete[] buffer;
     sws_freeContext(sws_ctx);
 }
 
-std::string Decoder::init()
+std::string decoder::init()
 {
     // Register all formats and codecs
     av_register_all();
     avdevice_register_all();
 
     // determine format context
-    pFormatCtx = avformat_alloc_context();
-    if (!pFormatCtx) {
+    format_ctx = avformat_alloc_context();
+    if (!format_ctx) {
         return std::string("Memory error");
     }
 
@@ -75,69 +75,69 @@ std::string Decoder::init()
     }
 
     // Open video file
-    if(avformat_open_input(&pFormatCtx, filename.c_str(), file_iformat, NULL)!=0){
-      if(avformat_open_input(&pFormatCtx, filename.c_str(), NULL, NULL)!=0){
+    if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, NULL)!=0){
+      if(avformat_open_input(&format_ctx, filename.c_str(), NULL, NULL)!=0){
           return std::string("Can't Open video file anyway");
       }
     }
 
     // Retrieve stream information
-    if(avformat_find_stream_info(pFormatCtx, NULL)<0) {
+    if(avformat_find_stream_info(format_ctx, NULL)<0) {
       return std::string("Can't Retrieve stream information");
     }
 
     // Dump information about file onto standard error
-    av_dump_format(pFormatCtx, 0, filename.c_str(), 0);
+    av_dump_format(format_ctx, 0, filename.c_str(), 0);
 
     // Find the first video stream
-    videoStream=-1;
-    for(int i=0; i<pFormatCtx->nb_streams; i++)
-    if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
-      videoStream=i;
+    video_stream=-1;
+    for(int i=0; i<format_ctx->nb_streams; i++)
+    if(format_ctx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
+      video_stream=i;
       break;
     }
-    if(videoStream==-1) {
+    if(video_stream==-1) {
         return std::string("Can't find streams");
     }
 
     // Get a pointer to the codec context for the video stream
-    pCodecCtx=pFormatCtx->streams[videoStream]->codec;
+    codec_ctx=format_ctx->streams[video_stream]->codec;
 
     // Find the decoder for the video stream
-    pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
-    if(pCodec==NULL) {
+    codec=avcodec_find_decoder(codec_ctx->codec_id);
+    if(codec==NULL) {
       return std::string("Unsupported codec!");
     }
 
     // Open codec
-    if(avcodec_open2(pCodecCtx, pCodec, &optionsDict)<0) {
+    if(avcodec_open2(codec_ctx, codec, NULL)<0) {
         printf("Can't open codec\n");
         return std::string("Can't open codec"); // Could not open codec
     }
 
     // Allocate video frame
-    pFrame=av_frame_alloc();
+    frame=av_frame_alloc();
 
     // Allocate an AVFrame structure
-    pFrameOut=av_frame_alloc();
-    if(pFrameOut==NULL){
+    frame_out=av_frame_alloc();
+    if(frame_out==NULL){
         return std::string("Can't allocate frame");
     }
 
     // setup omitted settings if exists
-    if (-1 == width) width = pCodecCtx->width;
-    if (-1 == height) height = pCodecCtx->height;
-    if (-1 == bit_rate) bit_rate = pCodecCtx->bit_rate;
+    if (-1 == width) width = codec_ctx->width;
+    if (-1 == height) height = codec_ctx->height;
+    if (-1 == bit_rate) bit_rate = codec_ctx->bit_rate;
 
     // Determine required buffer size and allocate buffer
-    numBytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
-    buffer = new uint8_t[numBytes*sizeof(uint8_t)];
+    num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
+    buffer = new uint8_t[num_bytes*sizeof(uint8_t)];
 
     sws_ctx = sws_getContext
         (
-            pCodecCtx->width,
-            pCodecCtx->height,
-            pCodecCtx->pix_fmt,
+            codec_ctx->width,
+            codec_ctx->height,
+            codec_ctx->pix_fmt,
             width, // new frame width
             height, // new frame height
             AV_PIX_FMT_YUV420P,
@@ -150,17 +150,17 @@ std::string Decoder::init()
     // Assign appropriate parts of buffer to image planes in pFrameOut
     // Note that pFrameOut is an AVFrame, but AVFrame is a superset
     // of AVPicture
-    avpicture_fill((AVPicture *)pFrameOut, buffer, AV_PIX_FMT_YUV420P, width, height);
+    avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
 
     return std::string{};
 }
 
-void Decoder::startDecoding()
+void decoder::start_decoding()
 {
-    decoder_thread = std::thread([this] {return this->runDecoding();});
+    decoder_thread = std::thread([this] {return this->run_decoding();});
 }
 
-void Decoder::stopDecoding()
+void decoder::stop_decoding()
 {
     stop_flag.exchange(true);
     if (decoder_thread.joinable()) {
@@ -168,17 +168,17 @@ void Decoder::stopDecoding()
     }
 }
 
-int Decoder::getBitRate()
+int decoder::get_bit_rate()
 {
     return bit_rate;
 }
 
-int Decoder::getWidth()
+int decoder::get_width()
 {
     return width;
 }
 
-int Decoder::getHeight()
+int decoder::get_height()
 {
     return height;
 }

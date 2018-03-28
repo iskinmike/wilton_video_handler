@@ -54,7 +54,7 @@ define([
             // print("Call response: [" + resp + "]");
 
             wiltoncall("av_start_video_record", 1);
-            wiltoncall("av_start_display_video", resp);
+            wiltoncall("av_start_video_display", resp);
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
                 thread.sleepMillis(1000);
@@ -67,7 +67,7 @@ define([
             wiltoncall("av_make_photo", resp);
             thread.sleepMillis(1000);
 
-            wiltoncall("av_stop_display_video", resp);
+            wiltoncall("av_stop_video_display", resp);
             wiltoncall("av_stop_video_record", resp);
         }
     };

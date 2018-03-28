@@ -2,17 +2,17 @@
 #include "frame_keeper.hpp"
 #include "stdio.h"
 namespace photo{
-std::string makePhoto(std::string out_file)
+std::string make_photo(std::string out_file)
 {
     FILE* file = fopen(out_file.c_str(), "wb");
     if (NULL == file) {
         return std::string("Can't open file for Photo.");
     }
-    AVFrame* frameRGB;
+    AVFrame* frame_rgb;
     struct SwsContext* sws_ctx;
 
-    FrameKeeper& fk = FrameKeeper::Instance();
-    AVFrame* frame = fk.getOriginFrame();
+    frame_keeper& fk = frame_keeper::instance();
+    AVFrame* frame = fk.get_origin_frame();
 
     if (nullptr == frame) {
         return std::string("Can't make Photo. Get 'NULL'' frame.");
@@ -32,19 +32,19 @@ std::string makePhoto(std::string out_file)
         NULL
     );
 
-    frameRGB = av_frame_alloc();
+    frame_rgb = av_frame_alloc();
     // Determine required buffer size and allocate buffer
     int numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, frame->width,
                     frame->height);
     uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
 
     //setup buffer for new frame
-    avpicture_fill((AVPicture *)frameRGB, buffer, AV_PIX_FMT_RGB24,
+    avpicture_fill((AVPicture *)frame_rgb, buffer, AV_PIX_FMT_RGB24,
            frame->width, frame->height);
 
     // setup frame sizes
-    frameRGB->width = frame->width;
-    frameRGB->height = frame->height;
+    frame_rgb->width = frame->width;
+    frame_rgb->height = frame->height;
 
     // rescale frame to frameRGB
     sws_scale(sws_ctx,
@@ -52,19 +52,19 @@ std::string makePhoto(std::string out_file)
         ((AVPicture*)frame)->linesize,
         0,
         frame->height,
-        ((AVPicture *)frameRGB)->data,
-        ((AVPicture *)frameRGB)->linesize);
+        ((AVPicture *)frame_rgb)->data,
+        ((AVPicture *)frame_rgb)->linesize);
 
 //     Write header
-    fprintf(file, "P6\n%d %d\n255\n", frameRGB->width, frameRGB->height);
+    fprintf(file, "P6\n%d %d\n255\n", frame_rgb->width, frame_rgb->height);
 
 //     Write pixel data
-    for(int y=0; y< frameRGB->height; y++)
-    fwrite(frameRGB->data[0]+y*frameRGB->linesize[0], 1, frameRGB->width*3, file);
+    for(int y=0; y< frame_rgb->height; y++)
+    fwrite(frame_rgb->data[0]+y*frame_rgb->linesize[0], 1, frame_rgb->width*3, file);
 
     fclose(file);
     av_frame_free(&frame);
-    av_frame_free(&frameRGB);
+    av_frame_free(&frame_rgb);
     return std::string{};
 }
 }

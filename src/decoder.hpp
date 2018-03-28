@@ -33,51 +33,50 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 
 void start_decode_video(std::string file_name);
 
-class Decoder
+class decoder
 {
     std::string      filename;
     std::string      format;
-    AVFormatContext *pFormatCtx;
-    AVInputFormat   *file_iformat;
-    AVCodecContext*  pCodecCtx;
-    AVCodec*         pCodec;
-    AVDictionary    *optionsDict;
-    AVFrame         *pFrame;
-    AVFrame         *pFrameOut;
+    AVFormatContext* format_ctx;
+    AVInputFormat*   file_iformat;
+    AVCodecContext*  codec_ctx;
+    AVCodec*         codec;
+    AVFrame*         frame;
+    AVFrame*         frame_out;
 
-    struct SwsContext      *sws_ctx;
-    int             numBytes;
-    uint8_t         *buffer;
+    struct SwsContext* sws_ctx;
+    int                num_bytes;
+    uint8_t*           buffer;
 
     AVPacket        packet;
-    int             frameFinished;
-    int videoStream;
+    int             frame_finished;
+    int             video_stream;
 
     std::thread decoder_thread;
 
     int bit_rate;
     int width;
     int height;
-    void runDecoding();
+    void run_decoding();
 
     std::atomic_bool stop_flag;
 public:
-  Decoder(std::string in, std::string _format, int _widtth, int _height, int _bit_rate)
-      : filename(in), format(_format),
-        pFormatCtx(NULL),file_iformat(NULL),pCodecCtx(NULL),
-        pCodec(NULL), optionsDict(NULL), pFrame(NULL),
-        pFrameOut(NULL), sws_ctx(NULL), buffer(NULL), stop_flag(false),
-        width(_widtth), height(_height), bit_rate(_bit_rate){}
-  ~Decoder();
+  decoder(std::string in, std::string format, int widtth, int height, int bit_rate)
+      : filename(in), format(format),
+        format_ctx(NULL),file_iformat(NULL),codec_ctx(NULL),
+        codec(NULL), frame(NULL), frame_out(NULL),
+        sws_ctx(NULL), buffer(NULL), stop_flag(false),
+        width(widtth), height(height), bit_rate(bit_rate){}
+  ~decoder();
 
   std::string init();
 
-  void startDecoding();
-  void stopDecoding();
+  void start_decoding();
+  void stop_decoding();
 
-  int getBitRate();
-  int getWidth();
-  int getHeight();
+  int get_bit_rate();
+  int get_width();
+  int get_height();
 
 };
 

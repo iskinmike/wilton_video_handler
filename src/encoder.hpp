@@ -28,12 +28,11 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <iostream>
 #include <vector>
 
-class Encoder
+class encoder
 {
-    AVCodec*         pEncodeCodec;
-    // write structs
-    AVFormatContext* pOutFormatCtx;
-    AVStream*        pOutStream;
+    AVCodec*         encode_codec;
+    AVFormatContext* out_format_ctx;
+    AVStream*        out_stream;
 
     std::string      out_file;
 
@@ -42,24 +41,24 @@ class Encoder
     int height;
     bool pts_flag;
 
-    FILE *pFile;
+    FILE *file;
     std::thread encoder_thread;
-    void runEncoding();
+    void run_encoding();
     std::atomic_bool stop_flag;
 
 public:
-  Encoder(std::string out)
-      : pEncodeCodec(NULL), out_file(out),
-        stop_flag(false), pOutFormatCtx(NULL), pOutStream(NULL), pts_flag(false)  {}
-  ~Encoder();
+  encoder(std::string out)
+      : encode_codec(NULL), out_file(out),
+        stop_flag(false), out_format_ctx(NULL), out_stream(NULL), pts_flag(false)  {}
+  ~encoder();
 
-  std::string init(int _bit_rate, int _width, int _height);
-  void startEncoding();
-  void stopEncoding();
+  std::string init(int bit_rate, int width, int height);
+  void start_encoding();
+  void stop_encoding();
 
-  int encodeFrame(AVFrame* frame);
-  void closeFile();
-  void fflushEncoder();
+  int encode_frame(AVFrame* frame);
+  void close_file();
+  void fflush_encoder();
 };
 
 

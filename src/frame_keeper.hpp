@@ -30,12 +30,12 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 }
 
 // Try to do it as Meyerce's Singletone [https://ru.stackoverflow.com/questions/327136/singleton-%D0%B8-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F]
-class FrameKeeper
+class frame_keeper
 {
     static std::mutex instance_mtx;
 
     std::mutex cond_mtx;
-    struct SyncWaiter {
+    struct sync_waiter {
         std::atomic_bool flag;
         std::condition_variable cond;
     };
@@ -44,24 +44,24 @@ class FrameKeeper
     AVFrame *origin_frame;
     std::mutex mtx;
 
-    std::vector<SyncWaiter*> sync_array;
-    void waitNewFrame();
-    ~FrameKeeper();
-    FrameKeeper(){}
+    std::vector<sync_waiter*> sync_array;
+    void wait_new_frame();
+    ~frame_keeper();
+    frame_keeper(){}
 public:
-    static FrameKeeper& Instance()
+    static frame_keeper& instance()
     {
         // Not thread safe in vs2013
         std::lock_guard<std::mutex> lock(instance_mtx);
-        static FrameKeeper fk;
+        static frame_keeper fk;
         return fk;
     }
-    FrameKeeper(FrameKeeper const&) = delete;
-    FrameKeeper& operator= (FrameKeeper const&) = delete;
+    frame_keeper(frame_keeper const&) = delete;
+    frame_keeper& operator= (frame_keeper const&) = delete;
   
-  void assigNewFrames(AVFrame *new_frame, AVFrame* new_origin_frame);
-  AVFrame* getFrame();
-  AVFrame* getOriginFrame();
+  void assig_new_frames(AVFrame *new_frame, AVFrame* new_origin_frame);
+  AVFrame* get_frame();
+  AVFrame* get_origin_frame();
 };
 
 #endif  /* FRAME_KEEPER_HPP */

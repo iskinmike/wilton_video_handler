@@ -1,13 +1,13 @@
 
 #include "frame_keeper.hpp"
 
-FrameKeeper::~FrameKeeper(){
+frame_keeper::~frame_keeper(){
     av_frame_free(&frame);
 }
 
-void FrameKeeper::waitNewFrame()
+void frame_keeper::wait_new_frame()
 {
-    SyncWaiter waiter;
+    sync_waiter waiter;
     waiter.flag.exchange(false);
     {
         std::lock_guard<std::mutex> lock(mtx);
@@ -17,7 +17,7 @@ void FrameKeeper::waitNewFrame()
     while (!waiter.flag) waiter.cond.wait_for(lck, std::chrono::seconds(1));
 }
 
-void FrameKeeper::assigNewFrames(AVFrame* new_frame, AVFrame *new_origin_frame)
+void frame_keeper::assig_new_frames(AVFrame* new_frame, AVFrame *new_origin_frame)
 {
     std::lock_guard<std::mutex> lock(mtx);
     av_frame_free(&frame);
@@ -31,17 +31,17 @@ void FrameKeeper::assigNewFrames(AVFrame* new_frame, AVFrame *new_origin_frame)
     sync_array.clear();
 }
 
-AVFrame* FrameKeeper::getFrame()
+AVFrame* frame_keeper::get_frame()
 {
-    waitNewFrame();
+    wait_new_frame();
     return av_frame_clone(frame);
 }
 
-AVFrame* FrameKeeper::getOriginFrame()
+AVFrame* frame_keeper::get_origin_frame()
 {
-    waitNewFrame();
+    wait_new_frame();
     return av_frame_clone(origin_frame);
 }
 
-std::mutex FrameKeeper::instance_mtx;
+std::mutex frame_keeper::instance_mtx;
 

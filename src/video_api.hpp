@@ -24,30 +24,30 @@
 #include <iostream>
 #include <memory>
 
-struct VideoSettings{
+struct video_settings{
     std::string input_file, output_file, format, photo_name, title;
     int pos_x, pos_y;
     int width, height;
     int bit_rate;
 };
 
-class VideoAPI
+class video_api
 {
-    std::shared_ptr<Decoder> decoder;
-    std::shared_ptr<Encoder> encoder;
-    std::shared_ptr<Display> display;
+    std::shared_ptr<decoder> api_decoder;
+    std::shared_ptr<encoder> api_encoder;
+    std::shared_ptr<display> api_display;
 
     // settings
-    VideoSettings settings;
+    video_settings settings;
 
 public:
-    VideoAPI(VideoSettings set);
-    ~VideoAPI(){}
-    std::string startVideoRecord();
-    std::string startVideoDisplay();
-    void stopVideoRecord();
-    void stopVideoDisplay();
-    std::string makePhoto();
+    video_api(video_settings set);
+    ~video_api(){}
+    std::string start_video_record();
+    std::string start_video_display();
+    void stop_video_record();
+    void stop_video_display();
+    std::string make_photo();
 };
 
 

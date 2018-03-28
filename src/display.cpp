@@ -2,38 +2,38 @@
 #include "display.hpp"
 #include "frame_keeper.hpp"
 
-void Display::runDisplay()
+void display::run_display()
 {
-    FrameKeeper& fk = FrameKeeper::Instance();
+    frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        displayFrame(fk.getFrame());
+        display_frame(fk.get_frame());
     }
     stop_flag.exchange(false);
 }
 
-std::string Display::waitResult(){
+std::string display::wait_result(){
     sync_point.flag.exchange(false);
     std::unique_lock<std::mutex> lck(cond_mtx);
     while (!sync_point.flag) sync_point.cond.wait_for(lck, std::chrono::seconds(4));
     return init_result;
 }
 
-void Display::sendResult(std::string result){
+void display::send_result(std::string result){
     init_result = result;
     sync_point.flag.exchange(true);
     sync_point.cond.notify_all();
 }
 
-Display::~Display(){
+display::~display(){
     if (display_thread.joinable()) {
         display_thread.join();
     }
 }
 
-std::string Display::init(int pos_x, int pos_y, int _width, int _height)
+std::string display::init(int pos_x, int pos_y, int width, int height)
 {
-    width = _width;
-    height = _height;
+    this->width = width;
+    this->height = height;
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
       return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
     }
@@ -57,16 +57,16 @@ std::string Display::init(int pos_x, int pos_y, int _width, int _height)
     return std::string{};
 }
 
-std::string Display::startDisplay(int pos_x, int pos_y, int _width, int _height)
+std::string display::start_display(int pos_x, int pos_y, int width, int height)
 {
-    display_thread = std::thread([this, pos_x, pos_y, _width, _height] {
-        sendResult(init(pos_x, pos_y, _width, _height));
-        return this->runDisplay();
+    display_thread = std::thread([this, pos_x, pos_y, width, height] {
+        send_result(init(pos_x, pos_y, width, height));
+        return this->run_display();
     });
-    return waitResult();
+    return wait_result();
 }
 
-void Display::stopDisplay()
+void display::stop_display()
 {
     stop_flag.exchange(true);
     if (display_thread.joinable()) display_thread.join();
@@ -74,7 +74,7 @@ void Display::stopDisplay()
     SDL_DestroyRenderer(renderer);
 }
 
-void Display::displayFrame(AVFrame *frame)
+void display::display_frame(AVFrame *frame)
 {
     if (nullptr == frame) {
         return;

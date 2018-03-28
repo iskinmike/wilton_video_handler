@@ -1,51 +1,51 @@
 
 #include "video_api.hpp"
 
-VideoAPI::VideoAPI(VideoSettings set)
+video_api::video_api(video_settings set)
 {
     settings = set;
-    decoder = std::shared_ptr<Decoder> (new Decoder(set.input_file, set.format,
+    api_decoder = std::shared_ptr<decoder> (new decoder(set.input_file, set.format,
             set.width, set.height, set.bit_rate));
-    encoder = std::shared_ptr<Encoder> (new Encoder(set.output_file));
-    display = std::shared_ptr<Display> (new Display(set.title));
+    api_encoder = std::shared_ptr<encoder> (new encoder(set.output_file));
+    api_display = std::shared_ptr<display> (new display(set.title));
 }
 
-std::string VideoAPI::startVideoRecord()
+std::string video_api::start_video_record()
 {
     auto result = std::string{};
-    result = decoder->init();
+    result = api_decoder->init();
     if (!result.empty()) {
         return result;
     }
-    result = encoder->init(decoder->getBitRate(), decoder->getWidth(), decoder->getHeight());
+    result = api_encoder->init(api_decoder->get_bit_rate(), api_decoder->get_width(), api_decoder->get_height());
     if (!result.empty()) {
         return result;
     }
 
-    decoder->startDecoding();
-    encoder->startEncoding();
+    api_decoder->start_decoding();
+    api_encoder->start_encoding();
     return result;
 }
 
-std::string VideoAPI::startVideoDisplay()
+std::string video_api::start_video_display()
 {
-    return display->startDisplay((-1 == settings.pos_x) ? 100 : settings.pos_x,
+    return api_display->start_display((-1 == settings.pos_x) ? 100 : settings.pos_x,
                                  (-1 == settings.pos_y) ? 100 : settings.pos_y,
-                                 decoder->getWidth(), decoder->getHeight());
+                                 api_decoder->get_width(), api_decoder->get_height());
 }
 
-void VideoAPI::stopVideoRecord()
+void video_api::stop_video_record()
 {
-    encoder->stopEncoding();
-    decoder->stopDecoding();
+    api_encoder->stop_encoding();
+    api_decoder->stop_decoding();
 }
 
-void VideoAPI::stopVideoDisplay()
+void video_api::stop_video_display()
 {
-    display->stopDisplay();
+    api_display->stop_display();
 }
 
-std::string VideoAPI::makePhoto()
+std::string video_api::make_photo()
 {
-    return photo::makePhoto(settings.photo_name);
+    return photo::make_photo(settings.photo_name);
 }

@@ -29,38 +29,38 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libavformat/avformat.h>
 }
 
-class Display
+class display
 {
     SDL_Renderer* renderer;
     SDL_Window*   screen;
-    SDL_Texture* texture;
+    SDL_Texture*  texture;
 
     int width;
     int height;
     std::string title;
 
     std::mutex cond_mtx;
-    struct SyncWaiter {
+    struct sync_waiter {
         std::atomic_bool flag;
         std::condition_variable cond;
     } sync_point;
     std::string init_result;
 
     std::thread display_thread;
-    void runDisplay();
-    std::string waitResult();
-    void sendResult(std::string result);
+    void run_display();
+    std::string wait_result();
+    void send_result(std::string result);
     std::atomic_bool stop_flag;
 public:
-    Display(const std::string& _title)
-        : renderer(NULL), screen(NULL), texture(NULL), title(_title), stop_flag(false), init_result("can't init"){}
-    ~Display();
+    display(const std::string& title)
+        : renderer(NULL), screen(NULL), texture(NULL), title(title), stop_flag(false), init_result("can't init"){}
+    ~display();
 
-    std::string init(int pos_x, int pos_y, int _width, int _height);
-    std::string startDisplay(int pos_x, int pos_y, int _width, int _height);
-    void stopDisplay();
+    std::string init(int pos_x, int pos_y, int width, int height);
+    std::string start_display(int pos_x, int pos_y, int width, int height);
+    void stop_display();
 
-    void displayFrame(AVFrame* frame);
+    void display_frame(AVFrame* frame);
 };
 
 
