@@ -1,16 +1,8 @@
-C++ module example
+C++ module wilton_video_handler
 ------------------
 
 `WILTON_HOME` environment variable must be set to the Wilton dist directory.
-
-Build and run on Windows:
-
-    mkdir build
-    cd build
-    cmake .. -G "Visual Studio 1x 20xx Win64"
-    cmake --build .
-    cd dist
-    bin\wilton.exe index.js
+`WILTON_DIR` environment variable must be set to the Wilton source dir.
 
 Build and run on Linux:
 
