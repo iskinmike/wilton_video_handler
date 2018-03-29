@@ -50,10 +50,4 @@ public:
     std::string make_photo();
 };
 
-
-
-
-
-
-
 #endif  /* VIDEO_API_HPP */

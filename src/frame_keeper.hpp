@@ -17,10 +17,6 @@
 #ifndef FRAME_KEEPER_HPP
 #define FRAME_KEEPER_HPP
 
-//#if __cplusplus < 201103L
-//    #define __cplusplus 201103L
-//#endif
-
 #include <memory>
 #include <mutex>
 #include <condition_variable>
@@ -48,16 +44,15 @@ class frame_keeper
 
     std::vector<sync_waiter*> sync_array;
     void wait_new_frame();
-public:
     ~frame_keeper();
     frame_keeper(){}
-//    static frame_keeper& instance()
-//    {
-//        // Not thread safe in vs2013
-//        std::lock_guard<std::mutex> lock(instance_mtx);
-//        static frame_keeper fk;
-//        return fk;
-//    }
+public:
+    static frame_keeper& instance()
+    {
+        // Not thread safe in vs2013
+        static frame_keeper fk;
+        return fk;
+    }
     frame_keeper(frame_keeper const&) = delete;
     frame_keeper& operator= (frame_keeper const&) = delete;
   
@@ -65,22 +60,5 @@ public:
   AVFrame* get_frame();
   AVFrame* get_origin_frame();
 };
-
-// based on some thoughts from article https://blog.barthe.ph/2009/07/30/no-stdlib-in-dllmai/
-// and analogy of wilton_jsc module
-class frame_keeper_holder {
-    std::mutex instance_mtx;
-    std::shared_ptr<frame_keeper> fk;
-public:
-    std::shared_ptr<frame_keeper> get_frame_keeper(){
-        std::lock_guard<std::mutex> lock(instance_mtx);
-        if (nullptr == fk) {
-            fk = std::make_shared<frame_keeper>();
-        }
-        return fk;
-    }
-};
-
-std::shared_ptr<frame_keeper_holder> shared_frame_keeper();
 
 #endif  /* FRAME_KEEPER_HPP */

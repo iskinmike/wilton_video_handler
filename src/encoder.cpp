@@ -17,10 +17,9 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void encoder::run_encoding()
 {
-    //frame_keeper& fk = frame_keeper::instance();
-    auto fk = shared_frame_keeper();
+    frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        encode_frame(fk->get_frame_keeper()->get_frame());
+        encode_frame(fk.get_frame());
     }
     stop_flag.exchange(false);
 }

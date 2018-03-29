@@ -9,9 +9,8 @@ std::string make_photo(std::string out_file)
     AVFrame* frame_rgb;
     struct SwsContext* sws_ctx;
 
-//    frame_keeper& fk = frame_keeper::instance();
-    auto fk = shared_frame_keeper();
-    AVFrame* frame = fk->get_frame_keeper()->get_origin_frame();
+    frame_keeper& fk = frame_keeper::instance();
+    AVFrame* frame = fk.get_origin_frame();
 
     if (nullptr == frame) {
         return std::string("Can't make Photo. Get 'NULL'' frame.");

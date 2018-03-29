@@ -32,6 +32,8 @@
 
 #include "wilton/wiltoncall.h"
 #include "video_api.hpp"
+#include "frame_keeper.hpp"
+
 namespace video_handler {
 
 namespace { //anonymous
@@ -196,6 +198,9 @@ __declspec(dllexport)
 #endif
 char* wilton_module_init() {
     char* err = nullptr;
+
+    // Call to initialize frame_keeper in single thread
+    frame_keeper::instance();
 
     // register 'av_start_video_record' function
     auto name_av_start_video_record = std::string("av_start_video_record");

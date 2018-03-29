@@ -31,9 +31,8 @@ void decoder::run_decoding()
                 frame_out->pkt_pts = frame->pkt_pts;
                 frame_out->pkt_duration = frame->pkt_duration;
                 
-//                frame_keeper& fk = frame_keeper::instance();
-                auto fk = shared_frame_keeper();
-                fk->get_frame_keeper()->assig_new_frames(frame_out, frame);
+                frame_keeper& fk = frame_keeper::instance();
+                fk.assig_new_frames(frame_out, frame);
                 av_frame_unref(frame);
             }
         }
