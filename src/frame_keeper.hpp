@@ -17,6 +17,10 @@
 #ifndef FRAME_KEEPER_HPP
 #define FRAME_KEEPER_HPP
 
+//#if __cplusplus < 201103L
+//    #define __cplusplus 201103L
+//#endif
+
 #include <memory>
 #include <mutex>
 #include <condition_variable>
@@ -32,8 +36,6 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 // Try to do it as Meyerce's Singletone [https://ru.stackoverflow.com/questions/327136/singleton-%D0%B8-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F]
 class frame_keeper
 {
-    static std::mutex instance_mtx;
-
     std::mutex cond_mtx;
     struct sync_waiter {
         std::atomic_bool flag;
@@ -46,16 +48,16 @@ class frame_keeper
 
     std::vector<sync_waiter*> sync_array;
     void wait_new_frame();
+public:
     ~frame_keeper();
     frame_keeper(){}
-public:
-    static frame_keeper& instance()
-    {
-        // Not thread safe in vs2013
-        std::lock_guard<std::mutex> lock(instance_mtx);
-        static frame_keeper fk;
-        return fk;
-    }
+//    static frame_keeper& instance()
+//    {
+//        // Not thread safe in vs2013
+//        std::lock_guard<std::mutex> lock(instance_mtx);
+//        static frame_keeper fk;
+//        return fk;
+//    }
     frame_keeper(frame_keeper const&) = delete;
     frame_keeper& operator= (frame_keeper const&) = delete;
   
@@ -63,5 +65,22 @@ public:
   AVFrame* get_frame();
   AVFrame* get_origin_frame();
 };
+
+// based on some thoughts from article https://blog.barthe.ph/2009/07/30/no-stdlib-in-dllmai/
+// and analogy of wilton_jsc module
+class frame_keeper_holder {
+    std::mutex instance_mtx;
+    std::shared_ptr<frame_keeper> fk;
+public:
+    std::shared_ptr<frame_keeper> get_frame_keeper(){
+        std::lock_guard<std::mutex> lock(instance_mtx);
+        if (nullptr == fk) {
+            fk = std::make_shared<frame_keeper>();
+        }
+        return fk;
+    }
+};
+
+std::shared_ptr<frame_keeper_holder> shared_frame_keeper();
 
 #endif  /* FRAME_KEEPER_HPP */

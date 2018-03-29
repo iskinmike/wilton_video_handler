@@ -43,5 +43,7 @@ AVFrame* frame_keeper::get_origin_frame()
     return av_frame_clone(origin_frame);
 }
 
-std::mutex frame_keeper::instance_mtx;
-
+std::shared_ptr<frame_keeper_holder> shared_frame_keeper() {
+    static auto fkh = std::make_shared<frame_keeper_holder>();
+    return fkh;
+}

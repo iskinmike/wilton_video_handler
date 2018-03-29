@@ -4,9 +4,10 @@
 
 void display::run_display()
 {
-    frame_keeper& fk = frame_keeper::instance();
+//    frame_keeper& fk = frame_keeper::instance();
+    auto fk = shared_frame_keeper();
     while (!stop_flag) {
-        display_frame(fk.get_frame());
+        display_frame(fk->get_frame_keeper()->get_frame());
     }
     stop_flag.exchange(false);
 }

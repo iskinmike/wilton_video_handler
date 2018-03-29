@@ -43,7 +43,7 @@ define([
             // settings["pos_x"] = 800;
             // settings["pos_y"] = 300;
             settings["bit_rate"] = 150000;
-            settings["photo_name"] = "test.bmp";
+            settings["photo_name"] = "photo.png";
 
 
             var resp = wiltoncall("av_inti_handler", settings);

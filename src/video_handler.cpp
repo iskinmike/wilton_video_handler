@@ -32,14 +32,13 @@
 
 #include "wilton/wiltoncall.h"
 #include "video_api.hpp"
-
 namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
 }
 
-int av_inti_handler(int id, const std::string& in, const std::string& out,
+int av_init_handler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
                 const int& height, const int& pos_x, const int& pos_y, const int& bit_rate){
     video_settings set;
@@ -229,7 +228,7 @@ char* wilton_module_init() {
     // register 'av_inti_handler' function
     auto name_av_inti_handler = std::string("av_inti_handler");
     err = wiltoncall_register(name_av_inti_handler.c_str(), static_cast<int> (name_av_inti_handler.length()),
-            reinterpret_cast<void*> (video_handler::av_inti_handler), video_handler::vahandler_wrapper_init);
+            reinterpret_cast<void*> (video_handler::av_init_handler), video_handler::vahandler_wrapper_init);
     if (nullptr != err) return err;
 
     // return success
