@@ -29,9 +29,8 @@ std::string video_api::start_video_record()
 
 std::string video_api::start_video_display()
 {
-    return api_display->start_display((-1 == settings.pos_x) ? 100 : settings.pos_x,
-                                 (-1 == settings.pos_y) ? 100 : settings.pos_y,
-                                 api_decoder->get_width(), api_decoder->get_height());
+    return api_display->start_display(settings.pos_x, settings.pos_y,
+            api_decoder->get_width(), api_decoder->get_height());
 }
 
 void video_api::stop_video_record()

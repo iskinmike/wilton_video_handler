@@ -34,11 +34,16 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 {
     this->width = width;
     this->height = height;
+
+    const int default_screen_pos = 100;
+    int screen_pos_x = (-1 != pos_x) ? pos_x : default_screen_pos ;
+    int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
+
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
       return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
     }
 
-    screen = SDL_CreateWindow(title.c_str(), pos_x, pos_y, width, height, 0);
+    screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height, 0);
     if(!screen) {
         return std::string("SDL: could not set video mode - exiting");
     }
