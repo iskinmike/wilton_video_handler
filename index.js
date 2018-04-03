@@ -40,30 +40,18 @@ define([
             settings["title"] = "CAM";
             settings["width"] = 640;
             settings["height"] = 480;
-            // settings["pos_x"] = 800;
-            // settings["pos_y"] = 300;
+            settings["pos_x"] = 800;
+            settings["pos_y"] = 300;
             settings["bit_rate"] = 150000;
             settings["photo_name"] = "photo.png";
 
-
             var resp = wiltoncall("av_inti_handler", settings);
-            // var display_settings = {};
-            // display_settings["id"] = resp;
-            // display_settings["x"] = 200;
-            // display_settings["y"] = 200;
-            // print("Call response: [" + resp + "]");
-
             wiltoncall("av_start_video_record", 1);
             wiltoncall("av_start_video_display", resp);
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
                 thread.sleepMillis(1000);
             }
-
-            // var photo_settings = {};
-            // photo_settings["id"] = resp;
-            // photo_settings["out"] = "photo1.bmp";
-
             wiltoncall("av_make_photo", resp);
             thread.sleepMillis(1000);
 

@@ -85,8 +85,13 @@ std::string av_make_photo(int id){
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
-        auto input = std::stoi(std::string(data_in, static_cast<size_t>(data_in_len)));
-        std::string output = fun(input);
+        auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        auto id = std::stoi(str_id);
+        // chek if handler with id initialized
+        if (nullptr == vhandlers_keeper[id]) {
+            throw wilton::support::exception(TRACEMSG("Wrong id: [" + str_id + "]"));
+        }
+        std::string output = fun(id);
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -96,6 +101,11 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
         }
         *data_out_len = static_cast<int>(output.length());
         return nullptr;
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
     } catch (...) {
         auto what = std::string("CALL ERROR"); // std::string(e.what());
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
