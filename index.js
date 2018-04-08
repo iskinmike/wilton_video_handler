@@ -1,5 +1,6 @@
-/*
+/* 
  * Copyright 2018, alex at staticlibs.net
+ * Copyright 2018, mike at myasnikov.mike@gmail.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +35,11 @@ define([
             print("Calling native module ...");
             var settings = {};
             settings["id"] = 1;
-            settings["in"] = "/dev/video0";
+            settings["in"] = "/dev/video0";   // linux
+            settings["fmt"] = "video4linux2"; // linux
+            // settings["in"] = "video=HP Webcam";  // windows
+            // settings["fmt"] = "dshow";           // windows
             settings["out"] = "out.mp4";
-            settings["fmt"] = "video4linux2";
             settings["title"] = "CAM";
             settings["width"] = 640;
             settings["height"] = 480;

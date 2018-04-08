@@ -1,4 +1,5 @@
 # Copyright 2018, alex at staticlibs.net
+# Copyright 2018, mike at myasnikov.mike@gmail.com
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +38,9 @@ set(SOURCES
     src/video_api.cpp
     src/video_handler.cpp)
 
+set(FFMPEG_DEV_DIR "C:/workspace/ffmpeg")
+set(SDL_DEV_DIR "C:/workspace/SDL2/dev")
+
 set(LIBS 
   avformat
   avcodec
@@ -45,18 +49,41 @@ set(LIBS
   swresample
   avutil
   SDL2
-  pthread)
+  pthread
+)
+
+if ( WIN32 )
+  set(LIBS 
+    "$ENV{FFMPEG_DEV_DIR}/lib/avformat.lib"
+    "$ENV{FFMPEG_DEV_DIR}/lib/avcodec.lib"
+    "$ENV{FFMPEG_DEV_DIR}/lib/swscale.lib"
+    "$ENV{FFMPEG_DEV_DIR}/lib/avdevice.lib"
+    "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
+    "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
+    "$ENV{SDL_DEV_DIR}/lib/x64/SDL2.lib"
+    "$ENV{WILTON_DIR}/dbg/bin/staticlib_json.lib"
+    "$ENV{WILTON_DIR}/dbg/bin/staticlib_utils.lib"
+  )
+endif ( )
 
 set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
-    "$ENV{WILTON_DIR}/deps/staticlib_config/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_io/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_json/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_support/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
+	"$ENV{FFMPEG_DEV_DIR}/include"
+	"$ENV{SDL_DEV_DIR}/include"
+  "$ENV{WILTON_DIR}/deps/staticlib_config/include"
+  "$ENV{WILTON_DIR}/deps/staticlib_io/include"
+  "$ENV{WILTON_DIR}/deps/staticlib_json/include"
+  "$ENV{WILTON_DIR}/deps/staticlib_support/include"
+  "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
 
+message(STATUS ${LIBS})
 message(STATUS ${WILTON_HEADERS_DIRS})
 message(STATUS ${STATICLIBS_HEADERS_DIRS})
+
+if ( WIN32 )
+message(STATUS "Directory '$ENV{SDL_DEV_DIR}/include' expected to contain headers in form like: '$ENV{SDL_DEV_DIR}/include/SDL2/SDL.h'")
+message(STATUS "This configuration simplify build on Linux systems")
+endif ( )
 
 add_library ( ${PROJECT_NAME} SHARED
         ${SOURCES} )
@@ -70,6 +97,10 @@ target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE
 if ( WIN32 )
     target_link_libraries ( ${PROJECT_NAME} PRIVATE
             $ENV{WILTON_HOME}/devel/wilton_core.lib )
+    set (WIN_CUSTOM_COMMAND_1 
+      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{FFMPEG_DEV_DIR}/bin dist/bin)
+    set (WIN_CUSTOM_COMMAND_2
+      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{SDL_DEV_DIR}/lib/x64 dist/bin)
 endif ( )
 
 target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
@@ -79,6 +110,10 @@ add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory dist
         # copy wilton libs to app bundle
         COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{WILTON_HOME}/bin dist/bin
+
+        ${WIN_CUSTOM_COMMAND_1}
+        ${WIN_CUSTOM_COMMAND_2}
+
         # copy example module
         COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}

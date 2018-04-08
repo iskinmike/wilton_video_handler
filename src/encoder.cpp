@@ -1,6 +1,7 @@
 
 #include "encoder.hpp"
 #include "frame_keeper.hpp"
+#include <iostream>
 
 #ifndef AV_CODEC_FLAG_GLOBAL_HEADER
         #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER
@@ -10,6 +11,12 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 {
     /* rescale output packet timestamp values from codec to stream timebase */
     av_packet_rescale_ts(pkt, *time_base, st->time_base);
+
+    // On windows there is 10 times error for timing without this hack video will be 10 times longer, than standard video
+#ifdef WIN32
+    pkt->pts = pkt->pts/10;
+    pkt->dts = pkt->dts/10;
+#endif
 
     /* Write the compressed frame to the media file. */
     return av_interleaved_write_frame(fmt_ctx, pkt);
@@ -68,7 +75,7 @@ std::string encoder::init(int bit_rate, int width, int height)
     out_stream->codec->max_b_frames = 0;
     out_stream->codec->pix_fmt = AV_PIX_FMT_YUV420P;
     out_stream->codec->bit_rate_tolerance = bit_rate;
-    out_stream->codec->ticks_per_frame = 2; // for H.264 codec
+    //out_stream->codec->ticks_per_frame = 2; // for H.264 codec
 
     out_stream->id = out_format_ctx->nb_streams-1;
 
@@ -87,8 +94,12 @@ std::string encoder::init(int bit_rate, int width, int height)
      * time_base resetted by libavcodec after avformat_write_header() so
      * pOutStream->time_base not equal to pOutStream->codec->time_base after that call */
     out_stream->time_base = out_stream->codec->time_base;
+    std::cout << "************** out_stream->time_base.den: " << out_stream->time_base.den << std::endl;
 
     av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+
+    // std::cout << "out_stream->codec->pix_fmt: " << out_stream->codec->pix_fmt << std::endl;
+    // std::cout << "AV_PIX_FMT_YUV420P:         " << AV_PIX_FMT_YUV420P << std::endl;
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
@@ -130,7 +141,8 @@ int encoder::encode_frame(AVFrame* frame)
     if (frame != NULL) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
-        frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);
+        frame->pts = av_rescale_q(frame->pts, av_make_q(1, AV_TIME_BASE), out_stream->codec->time_base);
+        //frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);
     }
 
     out_size = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame, &got_pack);
