@@ -78,6 +78,8 @@ std::string make_photo(std::string out_file)
     out_stream->codec->width = frame_rgb->width;
     out_stream->codec->height = frame_rgb->height;
     out_stream->id = out_format_ctx->nb_streams-1;
+    out_stream->codec->time_base = av_make_q(1,30);
+    out_stream->time_base = out_stream->codec->time_base;
 
     // need open codec
     if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
