@@ -73,6 +73,11 @@ std::string av_stop_video_record(int id){
     return std::string{};
 }
 
+std::string av_delete_handler(int id){
+    vhandlers_keeper.erase(id);
+    return std::string{};
+}
+
 std::string av_stop_video_display(int id){
     vhandlers_keeper[id]->stop_video_display();
     return std::string{};
@@ -238,6 +243,12 @@ char* wilton_module_init() {
     auto name_av_make_photo = std::string("av_make_photo");
     err = wiltoncall_register(name_av_make_photo.c_str(), static_cast<int> (name_av_make_photo.length()),
             reinterpret_cast<void*> (video_handler::av_make_photo), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+
+    // register 'av_delete_handler' function
+    auto name_av_delete_handler = std::string("av_delete_handler");
+    err = wiltoncall_register(name_av_delete_handler.c_str(), static_cast<int> (name_av_delete_handler.length()),
+            reinterpret_cast<void*> (video_handler::av_delete_handler), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function

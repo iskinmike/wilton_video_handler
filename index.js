@@ -60,6 +60,15 @@ define([
 
             wiltoncall("av_stop_video_display", resp);
             wiltoncall("av_stop_video_record", resp);
+            for (var i = 0; i < 2; ++i) {
+                logger.info("Server is prepare to close ...");
+                thread.sleepMillis(1000);
+            }
+            wiltoncall("av_delete_handler", resp);
+            for (var i = 0; i < 2; ++i) {
+                logger.info("Server is closed wait ...");
+                thread.sleepMillis(1000);
+            }
         }
     };
 });

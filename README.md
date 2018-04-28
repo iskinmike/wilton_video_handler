@@ -7,6 +7,11 @@ For windows build: <br>
 `FFMPEG_DEV_DIR` environment variable must be set to the FFMpeg dev directory, contained "/include" and "/lib" dirs.<br>
 `SDL_DEV_DIR` environment variable must be set to the SDL2 dev directory, contained "/include/SDL2" and "/lib/x64/" dirs<br>
 
+Install libraries for Ubuntu:
+```
+ sudo apt install libavcodec-dev libswscale-dev libavformat-dev libavutil-dev libavdevice-dev libsdl2-dev 
+```
+
 Build and run on Linux:
 
     mkdir build

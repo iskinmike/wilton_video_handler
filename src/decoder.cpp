@@ -50,6 +50,7 @@ decoder::~decoder()
 {
     stop_decoding();
     avcodec_close(codec_ctx);
+    avformat_close_input(&format_ctx);
     avformat_free_context(format_ctx);
     av_frame_free(&frame);
     av_frame_free(&frame_out);
