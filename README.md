@@ -5,23 +5,43 @@ C++ module wilton_video_handler
 `WILTON_DIR` environment variable must be set to the Wilton source dir.<br>
 For windows build: <br>
 `FFMPEG_DEV_DIR` environment variable must be set to the FFMpeg dev directory, contained "/include" and "/lib" dirs.<br>
-`SDL_DEV_DIR` environment variable must be set to the SDL2 dev directory, contained "/include/SDL2" and "/lib/x64/" dirs<br>
+`SDL_DEV_DIR` environment variable must be set to the SDL2 dev directory, contained "/include/SDL2" and "/lib/x64/" or "/lib/x86/" dirs<br>
+`STATICLIB_DIR` environment variable must be set to directory with staticlibs libraries<br>
+
 
 Install libraries for Ubuntu:
 ```
- sudo apt install libavcodec-dev libswscale-dev libavformat-dev libavutil-dev libavdevice-dev libsdl2-dev 
+ sudo apt install libavcodec-dev libswscale-dev libswresample-dev libavformat-dev libavutil-dev libavdevice-dev libsdl2-dev 
 ```
 
 Build and run on Linux:
-
+```bash
     mkdir build
     cd build
     cmake .. -DCMAKE_CXX_FLAGS=--std=c++11
     make
     cd dist
     ./bin/wilton index.js
+```
 
+Build and run on Windows:
+```bash
+    mkdir build
+    cd build
+    cmake .. -G "Visual Studio 1x 201x Win64" # example "Visual Studio 14 2015 Win64"
+    cmake --build . --config Release
+    cd dist
+    bin\wilton.exe index.js
+```
 
+Build for x32 windows system:
+```bash
+    cmake .. -G "Visual Studio 1x 201x"
+    cmake --build . --config Release
+```
+
+## warning
+If you use Visual Studio different from VS2013, you should install vcredist 20xx, depending on your VS version.
 
 ### usage
 | functions| Description |
@@ -32,6 +52,7 @@ Build and run on Linux:
 | av_make_photo(**id**)          | Take photo from device. Required handler's **id**. |
 | av_stop_video_display(**id**)  | Stop display video from device and destroy display. Required handler's **id**. |
 | av_stop_video_record(**id**)   | Stop video record and finalize file. Required handler's **id**. |
+| av_delete_handler(**id**) | Release webcam and delete initialised handler. Required handler's **id** |
 
 Settings json: 
 ```JavaScript
@@ -48,6 +69,14 @@ Settings json:
   // pixel pos of left top corner of created display
   "pos_x" : 800,              // optional. Default: 100
   "pos_y" : 300               // optional. Default: 100
+}
+```
+
+Changes for windows:
+```JavaScript
+{
+  "in" : "video=HP Webcam"; // Name of input device. required
+  "fmt" : "dshow";          // Name of input ffmpeg format. required
 }
 ```
 

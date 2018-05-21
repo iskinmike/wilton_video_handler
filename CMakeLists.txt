@@ -23,7 +23,8 @@ set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR} CACHE INT
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
-set ( PLATFORM_INCLUDE "")
+set (PLATFORM_INCLUDE "")
+set (ARCHITECTURE "x64") # or x86
 
 if(EXISTS "/etc/redhat-release")
      set ( PLATFORM_INCLUDE "/usr/include/ffmpeg")
@@ -37,9 +38,6 @@ set(SOURCES
     src/photo.cpp
     src/video_api.cpp
     src/video_handler.cpp)
-
-set(FFMPEG_DEV_DIR "C:/workspace/ffmpeg")
-set(SDL_DEV_DIR "C:/workspace/SDL2/dev")
 
 set(LIBS 
   avformat
@@ -60,9 +58,9 @@ if ( WIN32 )
     "$ENV{FFMPEG_DEV_DIR}/lib/avdevice.lib"
     "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
     "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
-    "$ENV{SDL_DEV_DIR}/lib/x64/SDL2.lib"
-    "$ENV{WILTON_DIR}/dbg/bin/staticlib_json.lib"
-    "$ENV{WILTON_DIR}/dbg/bin/staticlib_utils.lib"
+    "$ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE}/SDL2.lib"
+    "$ENV{STATICLIB_DIR}/staticlib_json.lib"
+    "$ENV{STATICLIB_DIR}/staticlib_utils.lib"
   )
 endif ( )
 
@@ -100,7 +98,7 @@ if ( WIN32 )
     set (WIN_CUSTOM_COMMAND_1 
       COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{FFMPEG_DEV_DIR}/bin dist/bin)
     set (WIN_CUSTOM_COMMAND_2
-      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{SDL_DEV_DIR}/lib/x64 dist/bin)
+      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE} dist/bin)
 endif ( )
 
 target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
