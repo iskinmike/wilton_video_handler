@@ -42,7 +42,7 @@ std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
 
 int av_init_handler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
-                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate){
+                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
     video_settings set;
     set.input_file = in;
     set.output_file = out;
@@ -54,7 +54,11 @@ int av_init_handler(int id, const std::string& in, const std::string& out,
     set.pos_y = pos_y;
     set.bit_rate = bit_rate;
     set.photo_name = photo_name;
+    set.framerate = framerate;
 
+    if (vhandlers_keeper.count(id)){
+        vhandlers_keeper.erase(id);
+    }
     vhandlers_keeper[id] =
             std::shared_ptr<video_api> (new video_api(set));
     return id;
@@ -86,6 +90,15 @@ std::string av_stop_video_display(int id){
 std::string av_make_photo(int id){
     return vhandlers_keeper[id]->make_photo();
 }
+
+std::string av_is_started(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_start_flag();
+    }
+    return sl::support::to_string(flag);
+}
+
 
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
@@ -123,7 +136,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     try {
         auto fun = reinterpret_cast<int(*)(int, const std::string&, const std::string&,
                                            const std::string&, const std::string&, const std::string&,
-                                           const int&, const int&, const int&, const int&, const int& )> (ctx);
+                                           const int&, const int&, const int&, const int&, const int&, double)> (ctx);
 
         sl::json::value json = sl::json::loads(std::string(data_in, data_in_len));
         int id = 0;
@@ -137,6 +150,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int width = -1;
         int height = -1;
         int bit_rate = -1;
+        const double error_value = -1.0;
+        double framerate = error_value;
         for (const sl::json::field& fi : json.as_object()) {
             auto& name = fi.name();
             if ("id" == name) {
@@ -161,6 +176,11 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 bit_rate = fi.as_int64_or_throw(name);
             } else if ("photo_name" == name) {
                 photo_name = fi.as_string_nonempty_or_throw(name);
+            } else if ("framerate" == name) {
+                framerate = fi.as_double(error_value);
+                if (error_value == framerate) {
+                    framerate = fi.as_int64_or_throw(name);
+                }
             } else {
                 throw wilton::support::exception(TRACEMSG("Unknown data field: [" + name + "]"));
             }
@@ -179,7 +199,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 "Required parameter 'photo_name' not specified"));
 
         std::string output = sl::support::to_string(fun(id, in, out, fmt, title, photo_name,
-                width, height, pos_x, pos_y, bit_rate));
+                width, height, pos_x, pos_y, bit_rate, framerate));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -249,6 +269,12 @@ char* wilton_module_init() {
     auto name_av_delete_handler = std::string("av_delete_handler");
     err = wiltoncall_register(name_av_delete_handler.c_str(), static_cast<int> (name_av_delete_handler.length()),
             reinterpret_cast<void*> (video_handler::av_delete_handler), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+
+    // register 'av_is_started' function
+    auto name_av_is_started = std::string("av_is_started");
+    err = wiltoncall_register(name_av_is_started.c_str(), static_cast<int> (name_av_is_started.length()),
+            reinterpret_cast<void*> (video_handler::av_is_started), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function

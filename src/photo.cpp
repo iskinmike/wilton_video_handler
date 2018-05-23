@@ -78,7 +78,7 @@ std::string make_photo(std::string out_file)
     out_stream->codec->width = frame_rgb->width;
     out_stream->codec->height = frame_rgb->height;
     out_stream->id = out_format_ctx->nb_streams-1;
-    out_stream->codec->time_base = av_make_q(1,30);
+    out_stream->codec->time_base = av_make_q(1,15);
     out_stream->time_base = out_stream->codec->time_base;
 
     // need open codec
@@ -110,7 +110,7 @@ std::string make_photo(std::string out_file)
     av_write_trailer(out_format_ctx);
     avio_closep(&(out_format_ctx->pb));
 
-    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+//    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
 
     av_frame_free(&frame);
     av_frame_free(&frame_rgb);

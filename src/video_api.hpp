@@ -29,6 +29,7 @@ struct video_settings{
     int pos_x, pos_y;
     int width, height;
     int bit_rate;
+    double framerate;
 };
 
 class video_api
@@ -40,6 +41,8 @@ class video_api
     // settings
     video_settings settings;
 
+    bool start_flag;
+
 public:
     video_api(video_settings set);
     ~video_api(){}
@@ -48,6 +51,7 @@ public:
     void stop_video_record();
     void stop_video_display();
     std::string make_photo();
+    bool get_start_flag() const;
 };
 
 #endif  /* VIDEO_API_HPP */

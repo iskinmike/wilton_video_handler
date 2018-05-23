@@ -1,7 +1,12 @@
 
 #include "video_api.hpp"
 
-video_api::video_api(video_settings set)
+bool video_api::get_start_flag() const
+{
+    return start_flag;
+}
+
+video_api::video_api(video_settings set) : start_flag(false)
 {
     settings = set;
     api_decoder = std::shared_ptr<decoder> (new decoder(set.input_file, set.format,
@@ -17,13 +22,17 @@ std::string video_api::start_video_record()
     if (!result.empty()) {
         return result;
     }
-    result = api_encoder->init(api_decoder->get_bit_rate(), api_decoder->get_width(), api_decoder->get_height());
+    result = api_encoder->init(api_decoder->get_bit_rate(), api_decoder->get_width(), api_decoder->get_height(), settings.framerate);
     if (!result.empty()) {
         return result;
     }
 
+
     api_decoder->start_decoding();
     api_encoder->start_encoding();
+
+    start_flag = true;
+
     return result;
 }
 
@@ -35,6 +44,7 @@ std::string video_api::start_video_display()
 
 void video_api::stop_video_record()
 {
+    start_flag = false;
     api_encoder->stop_encoding();
     api_decoder->stop_decoding();
 }

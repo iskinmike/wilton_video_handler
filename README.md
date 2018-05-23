@@ -53,6 +53,7 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_stop_video_display(**id**)  | Stop display video from device and destroy display. Required handler's **id**. |
 | av_stop_video_record(**id**)   | Stop video record and finalize file. Required handler's **id**. |
 | av_delete_handler(**id**) | Release webcam and delete initialised handler. Required handler's **id** |
+| av_is_started(**id**) | Returns 1 if record is started, 0 if not. Required handler's **id** |
 
 Settings json: 
 ```JavaScript
@@ -65,7 +66,8 @@ Settings json:
   "title" : "CAM",            // Name of created display. required
   "width" : 640,              // optional. Default: width of captured device image
   "height" : 480,             // optional. Default: height of captured device image
-  "bit_rate" : 150000,        // oprional. Default: device bit_rate
+  "bit_rate" : 150000,        // optional. Default: device bit_rate
+  "framerate" : 4.4,          // optional, should be setted as float value. Default: 25.0 
   // pixel pos of left top corner of created display
   "pos_x" : 800,              // optional. Default: 100
   "pos_y" : 300               // optional. Default: 100
@@ -84,6 +86,7 @@ Changes for windows:
 ```JavaScript
   var settings = {};
   settings["id"] = 1;
+  settings["framerate"] = 4.4;
   ... // do settings stuff
   var int_id = 1;
   var str_id = wiltoncall("av_inti_handler", settings);

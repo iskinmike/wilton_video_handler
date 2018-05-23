@@ -88,7 +88,7 @@ std::string decoder::init()
     }
 
     // Dump information about file onto standard error
-    av_dump_format(format_ctx, 0, filename.c_str(), 0);
+//    av_dump_format(format_ctx, 0, filename.c_str(), 0);
 
     // Find the first video stream
     video_stream=-1;
