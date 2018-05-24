@@ -106,10 +106,12 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
         auto id = std::stoi(str_id);
         // chek if handler with id initialized
+        auto output = std::string{};
         if (nullptr == vhandlers_keeper[id]) {
-            throw wilton::support::exception(TRACEMSG("Wrong id: [" + str_id + "]"));
+            output = "Error: Wrong id [" + str_id + "]";
+        } else {
+            output = fun(id);
         }
-        std::string output = fun(id);
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
