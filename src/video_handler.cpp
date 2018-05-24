@@ -108,7 +108,7 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
         // chek if handler with id initialized
         auto output = std::string{};
         if (nullptr == vhandlers_keeper[id]) {
-            output = "Error: Wrong id [" + str_id + "]";
+            output = "{ \"error\": \"Wrong id [" + str_id + "]\"}";
         } else {
             output = fun(id);
         }

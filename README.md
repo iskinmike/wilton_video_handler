@@ -55,6 +55,7 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_delete_handler(**id**) | Release webcam and delete initialised handler. Required handler's **id** |
 | av_is_started(**id**) | Returns 1 if record is started, 0 if not. Required handler's **id** |
 
+
 Settings json: 
 ```JavaScript
 {
@@ -97,3 +98,14 @@ Changes for windows:
 
 
 A more detailed example in **index.js**
+
+
+###errors handling
+
+If video handler with **id** doesn't exists function return errror message in json string:
+
+```JavaScript
+{ 
+  "error": "Wrong id [$id]"
+}
+``` 

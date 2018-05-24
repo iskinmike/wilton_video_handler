@@ -47,7 +47,7 @@ define([
             settings["pos_y"] = 300;
             settings["bit_rate"] = 40000;
             settings["photo_name"] = "photo.png";
-            settings["framerate"] = parseFloat("4.0");
+            settings["framerate"] = parseFloat("4.4");
 
             var resp = wiltoncall("av_inti_handler", settings);
             wiltoncall("av_start_video_record", 1);
@@ -60,8 +60,6 @@ define([
             var flag = wiltoncall("av_is_started", resp);
             print("is started: " + flag)
             thread.sleepMillis(1000);
-
-
 
             wiltoncall("av_stop_video_display", resp);
             wiltoncall("av_stop_video_record", resp);
@@ -76,7 +74,11 @@ define([
                 logger.info("Server is closed wait ...");
                 thread.sleepMillis(1000);
             }
+            flag = wiltoncall("av_is_started", resp);
+            print("is started: " + flag);
 
+            var json = JSON.parse(flag);
+            print("is started: " + json.error);            
         }
     };
 });
