@@ -24,7 +24,9 @@ set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR} CACHE I
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 set (PLATFORM_INCLUDE "")
-set (ARCHITECTURE "x64") # or x86
+if ( NOT DEFINED ARCHITECTURE)
+  set (ARCHITECTURE "x64") # or x86
+endif ()
 
 if(EXISTS "/etc/redhat-release")
      set ( PLATFORM_INCLUDE "/usr/include/ffmpeg")
@@ -62,6 +64,10 @@ if ( WIN32 )
     "$ENV{STATICLIB_DIR}/staticlib_json.lib"
     "$ENV{STATICLIB_DIR}/staticlib_utils.lib"
   )
+  # needed for some MSVC installations
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO")
 endif ( )
 
 set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
