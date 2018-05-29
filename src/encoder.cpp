@@ -31,6 +31,11 @@ void encoder::run_encoding()
     stop_flag.exchange(false);
 }
 
+bool encoder::is_initialized() const
+{
+    return initialized;
+}
+
 encoder::~encoder()
 {
     stop_encoding();
@@ -110,7 +115,7 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);
-
+    initialized = true;
     return std::string{};
 }
 

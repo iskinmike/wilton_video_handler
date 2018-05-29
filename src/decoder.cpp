@@ -46,6 +46,11 @@ void decoder::run_decoding()
     stop_flag.exchange(false);
 }
 
+bool decoder::is_initialized() const
+{
+    return initialized;
+}
+
 decoder::~decoder()
 {
     stop_decoding();
@@ -153,6 +158,7 @@ std::string decoder::init()
     // of AVPicture
     avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
 
+    initialized = true;
     return std::string{};
 }
 

@@ -42,16 +42,30 @@ class video_api
     video_settings settings;
 
     bool start_flag;
+    bool encoder_start_flag;
+    bool decoder_start_flag;
 
 public:
     video_api(video_settings set);
     ~video_api(){}
     std::string start_video_record();
     std::string start_video_display();
+
+    std::string init_encoder();
+    std::string init_decoder();
+
+    std::string start_encoding();
+    std::string start_decoding();
+
+    void stop_decoding();
+    void stop_encoding();
+
     void stop_video_record();
     void stop_video_display();
     std::string make_photo();
     bool get_start_flag() const;
+    bool get_decoder_flag() const;
+    bool get_encoder_flag() const;
 };
 
 #endif  /* VIDEO_API_HPP */

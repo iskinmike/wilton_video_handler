@@ -47,11 +47,12 @@ class encoder
     std::thread encoder_thread;
     void run_encoding();
     std::atomic_bool stop_flag;
+    bool initialized;
 
 public:
   encoder(std::string out)
       : encode_codec(NULL), out_file(out),
-        stop_flag(false), out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1)  {}
+        stop_flag(false), initialized(false), out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1)  {}
   ~encoder();
 
   std::string init(int bit_rate, int width, int height, double framerate);
@@ -62,6 +63,7 @@ public:
 
   void close_file();
   void fflush_encoder();
+  bool is_initialized() const;
 };
 
 

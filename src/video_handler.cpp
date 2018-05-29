@@ -39,7 +39,7 @@ namespace video_handler {
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
 }
-
+// handler functions
 int av_init_handler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
                 const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
@@ -63,34 +63,62 @@ int av_init_handler(int id, const std::string& in, const std::string& out,
             std::shared_ptr<video_api> (new video_api(set));
     return id;
 }
-
-std::string av_start_video_record(int id){
-    return vhandlers_keeper[id]->start_video_record();
-}
-
-std::string av_start_video_display(int id){
-    return vhandlers_keeper[id]->start_video_display();
-}
-
-std::string av_stop_video_record(int id){
-    vhandlers_keeper[id]->stop_video_record();
-    return std::string{};
-}
-
 std::string av_delete_handler(int id){
     vhandlers_keeper.erase(id);
     return std::string{};
 }
-
+// video functions includes both encoder and decoder functions calls
+std::string av_start_video_record(int id){
+    return vhandlers_keeper[id]->start_video_record();
+}
+std::string av_stop_video_record(int id){
+    vhandlers_keeper[id]->stop_video_record();
+    return std::string{};
+}
+// encoder functions. Wait for decoded frames and writes them to video file
+std::string av_start_encoding(int id){
+    return vhandlers_keeper[id]->start_encoding();
+}
+std::string av_stop_encoding(int id){
+    vhandlers_keeper[id]->stop_encoding();
+    return std::string{};
+}
+// decoder functions. Occupies a video device and start to decode frames to memory
+std::string av_start_decoding(int id){
+    return vhandlers_keeper[id]->start_decoding();
+}
+std::string av_stop_decoding(int id){
+    vhandlers_keeper[id]->stop_decoding();
+    return std::string{};
+}
+// display functions. Display decoded frames to user
+std::string av_start_video_display(int id){
+    return vhandlers_keeper[id]->start_video_display();
+}
 std::string av_stop_video_display(int id){
     vhandlers_keeper[id]->stop_video_display();
     return std::string{};
 }
-
+// takes photo from decoded frame
 std::string av_make_photo(int id){
     return vhandlers_keeper[id]->make_photo();
 }
-
+// check functions. true if encoder/decoder started
+std::string av_is_encoder_started(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_encoder_flag();
+    }
+    return sl::support::to_string(flag);
+}
+std::string av_is_decoder_started(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_decoder_flag();
+    }
+    return sl::support::to_string(flag);
+}
+// return if video write is started, i.e. (av_is_decoder_started() && av_is_encoder_started())
 std::string av_is_started(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
@@ -98,7 +126,6 @@ std::string av_is_started(int id){
     }
     return sl::support::to_string(flag);
 }
-
 
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
@@ -249,12 +276,36 @@ char* wilton_module_init() {
     err = wiltoncall_register(name_av_stop_video_record.c_str(), static_cast<int> (name_av_stop_video_record.length()),
             reinterpret_cast<void*> (video_handler::av_stop_video_record), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
+
+    // register 'av_start_encoding' function
+    auto name_av_start_encoding = std::string("av_start_encoding");
+    err = wiltoncall_register(name_av_start_encoding.c_str(), static_cast<int> (name_av_start_encoding.length()),
+            reinterpret_cast<void*> (video_handler::av_start_encoding), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_stop_encoding' function
+    auto name_av_stop_encoding = std::string("av_stop_encoding");
+    err = wiltoncall_register(name_av_stop_encoding.c_str(), static_cast<int> (name_av_stop_encoding.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_encoding), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+
+
+    // register 'av_start_decoding' function
+    auto name_av_start_decoding = std::string("av_start_decoding");
+    err = wiltoncall_register(name_av_start_decoding.c_str(), static_cast<int> (name_av_start_decoding.length()),
+            reinterpret_cast<void*> (video_handler::av_start_decoding), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_stop_decoding' function
+    auto name_av_stop_decoding = std::string("av_stop_decoding");
+    err = wiltoncall_register(name_av_stop_decoding.c_str(), static_cast<int> (name_av_stop_decoding.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_decoding), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+
+
     // register 'av_stop_video_display' function
     auto name_av_stop_video_display = std::string("av_stop_video_display");
     err = wiltoncall_register(name_av_stop_video_display.c_str(), static_cast<int> (name_av_stop_video_display.length()),
             reinterpret_cast<void*> (video_handler::av_stop_video_display), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-
     // register 'av_start_video_display' function
     auto name_av_start_video_display = std::string("av_start_video_display");
     err = wiltoncall_register(name_av_start_video_display.c_str(), static_cast<int> (name_av_start_video_display.length()),
@@ -277,6 +328,16 @@ char* wilton_module_init() {
     auto name_av_is_started = std::string("av_is_started");
     err = wiltoncall_register(name_av_is_started.c_str(), static_cast<int> (name_av_is_started.length()),
             reinterpret_cast<void*> (video_handler::av_is_started), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_is_decoder_started' function
+    auto name_av_is_decoder_started = std::string("av_is_decoder_started");
+    err = wiltoncall_register(name_av_is_decoder_started.c_str(), static_cast<int> (name_av_is_decoder_started.length()),
+            reinterpret_cast<void*> (video_handler::av_is_decoder_started), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_is_encoder_started' function
+    auto name_av_is_encoder_started = std::string("av_is_encoder_started");
+    err = wiltoncall_register(name_av_is_encoder_started.c_str(), static_cast<int> (name_av_is_encoder_started.length()),
+            reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function

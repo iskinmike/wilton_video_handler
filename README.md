@@ -47,13 +47,19 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | functions| Description |
 | --- | --- |
 | av_inti_handler(**settings**)  | Initialize video handler with specified **settings**. Return handler **id** as *string* value. |
-| av_start_video_record(**id**)  | Start record video from specified device and write it to specified file. Required handler's **id**.|
-| av_start_video_display(**id**) | Create window to display video from device. Required handler's **id**.|
-| av_make_photo(**id**)          | Take photo from device. Required handler's **id**. |
-| av_stop_video_display(**id**)  | Stop display video from device and destroy display. Required handler's **id**. |
-| av_stop_video_record(**id**)   | Stop video record and finalize file. Required handler's **id**. |
 | av_delete_handler(**id**) | Release webcam and delete initialised handler. Required handler's **id** |
+| av_start_video_record(**id**)  | Start record video from specified device and write it to specified file. Required handler's **id**. This Call includes call for start decoder and encoder |
+| av_stop_video_record(**id**)   | Stop video record and finalize file. Required handler's **id**. |
+| av_make_photo(**id**)          | Take photo from device. Required handler's **id**. |
+| av_start_video_display(**id**) | Create window to display video from device. Required handler's **id**.|
+| av_stop_video_display(**id**)  | Stop display video from device and destroy display. Required handler's **id**. |
+| av_start_decoding(**id**) | Start Decoder that occupies a video device and start to decode frames to memory. Required handler's **id** |
+| av_stop_decoding(**id**) | Stop Decoder and release video device. Required handler's **id** |
+| av_start_encoding(**id**) | Start Encoder, that wait for decoded frames and writes them to video file. Required handler's **id** |
+| av_stop_encoding(**id**) | Stop Encoder. Required handler's **id** |
 | av_is_started(**id**) | Returns 1 if record is started, 0 if not. Required handler's **id** |
+| av_is_decoder_started(**id**) | Returns 1 if decoder is started, 0 if not. Required handler's **id** |
+| av_is_encoder_started(**id**) | Returns 1 if encoder is started, 0 if not. Required handler's **id** |
 
 
 Settings json: 

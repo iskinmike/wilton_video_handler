@@ -58,6 +58,7 @@ class decoder
     int width;
     int height;
     void run_decoding();
+    bool initialized;
 
     std::atomic_bool stop_flag;
 public:
@@ -65,7 +66,7 @@ public:
       : filename(in), format(format),
         format_ctx(NULL),file_iformat(NULL),codec_ctx(NULL),
         codec(NULL), frame(NULL), frame_out(NULL),
-        sws_ctx(NULL), buffer(NULL), stop_flag(false),
+        sws_ctx(NULL), buffer(NULL), stop_flag(false), initialized(false),
         width(widtth), height(height), bit_rate(bit_rate){}
   ~decoder();
 
@@ -78,6 +79,7 @@ public:
   int get_width();
   int get_height();
 
+  bool is_initialized() const;
 };
 
 #endif  /* DECODER_HPP */
