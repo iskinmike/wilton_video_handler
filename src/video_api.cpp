@@ -16,6 +16,11 @@ bool video_api::get_encoder_flag() const
     return encoder_start_flag;
 }
 
+bool video_api::get_checking_flag() const
+{
+    return api_checker->is_checking();
+}
+
 video_api::video_api(video_settings set) : start_flag(false), encoder_start_flag(false), decoder_start_flag(false)
 {
     settings = set;
@@ -23,6 +28,7 @@ video_api::video_api(video_settings set) : start_flag(false), encoder_start_flag
             set.width, set.height, set.bit_rate));
     api_encoder = std::shared_ptr<encoder> (new encoder(set.output_file));
     api_display = std::shared_ptr<display> (new display(set.title));
+    api_checker = std::shared_ptr<checker> (new checker(set.checker_ip, set.checker_port, set.face_cascade_path, set.wait_time_ms));
 }
 
 std::string video_api::start_video_record()
@@ -47,6 +53,16 @@ std::string video_api::start_video_display()
 {
     return api_display->start_display(settings.pos_x, settings.pos_y,
             api_decoder->get_width(), api_decoder->get_height());
+}
+
+// checker
+std::string video_api::start_checker_display()
+{
+    return api_checker->run_checker_display();
+}
+void video_api::stop_cheking_display()
+{
+    api_checker->stop_cheking_display();
 }
 
 std::string video_api::init_encoder() {

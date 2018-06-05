@@ -40,27 +40,15 @@ namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
 }
 // handler functions
-int av_init_handler(int id, const std::string& in, const std::string& out,
-                const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
-                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
-    video_settings set;
-    set.input_file = in;
-    set.output_file = out;
-    set.format = fmt;
-    set.title = title;
-    set.width = width;
-    set.height = height;
-    set.pos_x = pos_x;
-    set.pos_y = pos_y;
-    set.bit_rate = bit_rate;
-    set.photo_name = photo_name;
-    set.framerate = framerate;
-
+//int av_init_handler(int id, const std::string& in, const std::string& out,
+//                const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
+//                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
+int av_init_handler(int id, video_settings settings) {
     if (vhandlers_keeper.count(id)){
         vhandlers_keeper.erase(id);
     }
     vhandlers_keeper[id] =
-            std::shared_ptr<video_api> (new video_api(set));
+            std::shared_ptr<video_api> (new video_api(settings));
     return id;
 }
 std::string av_delete_handler(int id){
@@ -99,6 +87,22 @@ std::string av_stop_video_display(int id){
     vhandlers_keeper[id]->stop_video_display();
     return std::string{};
 }
+// display functions for checker test
+std::string av_start_checker_video_display(int id){
+    return vhandlers_keeper[id]->start_checker_display();
+}
+std::string av_stop_checker_video_display(int id){
+    vhandlers_keeper[id]->stop_cheking_display();
+    return std::string{};
+}
+std::string av_is_checking_in_progress(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_checking_flag();
+    }
+    return sl::support::to_string(flag);
+}
+
 // takes photo from decoded frame
 std::string av_make_photo(int id){
     return vhandlers_keeper[id]->make_photo();
@@ -163,9 +167,7 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
 
 char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
-        auto fun = reinterpret_cast<int(*)(int, const std::string&, const std::string&,
-                                           const std::string&, const std::string&, const std::string&,
-                                           const int&, const int&, const int&, const int&, const int&, double)> (ctx);
+        auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
 
         sl::json::value json = sl::json::loads(std::string(data_in, data_in_len));
         int id = 0;
@@ -181,6 +183,12 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int bit_rate = -1;
         const double error_value = -1.0;
         double framerate = error_value;
+
+        int checker_port = -1;
+        auto checker_ip = std::string{};
+        auto face_cascade_path = std::string{};
+        int64_t wait_time_ms = -1;
+
         for (const sl::json::field& fi : json.as_object()) {
             auto& name = fi.name();
             if ("id" == name) {
@@ -193,6 +201,14 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 fmt = fi.as_string_nonempty_or_throw(name);
             } else if ("title" == name) {
                 title = fi.as_string_nonempty_or_throw(name);
+            } else if ("checker_ip" == name) {
+                checker_ip = fi.as_string_nonempty_or_throw(name);
+            } else if ("face_cascade_path" == name) {
+                face_cascade_path = fi.as_string_nonempty_or_throw(name);
+            } else if ("checker_port" == name) {
+                checker_port = fi.as_int64_or_throw(name);
+            } else if ("wait_time_ms" == name) {
+                wait_time_ms = fi.as_int64_or_throw(name);
             } else if ("width" == name) {
                 width = fi.as_int64_or_throw(name);
             } else if ("height" == name) {
@@ -226,9 +242,34 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 "Required parameter 'title' not specified"));
         if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'photo_name' not specified"));
+        if (checker_ip.empty())  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'checker_ip' not specified"));
+        if (face_cascade_path.empty())  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'face_cascade_path' not specified"));
+        if (-1 == checker_port)  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'checker_port' not specified"));
+        if (-1 == wait_time_ms)  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'wait_time_ms' not specified"));
 
-        std::string output = sl::support::to_string(fun(id, in, out, fmt, title, photo_name,
-                width, height, pos_x, pos_y, bit_rate, framerate));
+
+        video_settings set;
+        set.input_file = in;
+        set.output_file = out;
+        set.format = fmt;
+        set.title = title;
+        set.width = width;
+        set.height = height;
+        set.pos_x = pos_x;
+        set.pos_y = pos_y;
+        set.bit_rate = bit_rate;
+        set.photo_name = photo_name;
+        set.framerate = framerate;
+        set.checker_ip = checker_ip;
+        set.checker_port = checker_port;
+        set.face_cascade_path = face_cascade_path;
+        set.wait_time_ms = wait_time_ms;
+
+        std::string output = sl::support::to_string(fun(id, set));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -300,7 +341,6 @@ char* wilton_module_init() {
             reinterpret_cast<void*> (video_handler::av_stop_decoding), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
-
     // register 'av_stop_video_display' function
     auto name_av_stop_video_display = std::string("av_stop_video_display");
     err = wiltoncall_register(name_av_stop_video_display.c_str(), static_cast<int> (name_av_stop_video_display.length()),
@@ -311,6 +351,25 @@ char* wilton_module_init() {
     err = wiltoncall_register(name_av_start_video_display.c_str(), static_cast<int> (name_av_start_video_display.length()),
             reinterpret_cast<void*> (video_handler::av_start_video_display), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
+
+
+    ///////////////////////
+    // register 'av_stop_checker_video_display' function
+    auto name_av_stop_checker_video_display = std::string("av_stop_checker_video_display");
+    err = wiltoncall_register(name_av_stop_checker_video_display.c_str(), static_cast<int> (name_av_stop_checker_video_display.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_checker_video_display), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_start_checker_video_display' function
+    auto name_av_start_checker_video_display = std::string("av_start_checker_video_display");
+    err = wiltoncall_register(name_av_start_checker_video_display.c_str(), static_cast<int> (name_av_start_checker_video_display.length()),
+            reinterpret_cast<void*> (video_handler::av_start_checker_video_display), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_is_checking_in_progress' function
+    auto name_av_is_checking_in_progress = std::string("av_is_checking_in_progress");
+    err = wiltoncall_register(name_av_is_checking_in_progress.c_str(), static_cast<int> (name_av_is_checking_in_progress.length()),
+            reinterpret_cast<void*> (video_handler::av_is_checking_in_progress), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    //////////////////////
 
     // register 'av_make_photo' function
     auto name_av_make_photo = std::string("av_make_photo");

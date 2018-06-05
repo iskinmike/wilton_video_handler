@@ -34,6 +34,7 @@ endif(EXISTS "/etc/redhat-release")
 
 set(SOURCES
     src/frame_keeper.cpp
+    src/checker.cpp
     src/decoder.cpp
     src/encoder.cpp
     src/display.cpp
@@ -41,15 +42,23 @@ set(SOURCES
     src/video_api.cpp
     src/video_handler.cpp)
 
+set ( LIBPATH  "/usr/local/lib" )
+
 set(LIBS 
-  avformat
-  avcodec
-  swscale
-  avdevice
-  swresample
-  avutil
-  SDL2
-  pthread
+    avformat
+    avcodec
+    swscale
+    avdevice
+    swresample
+    avutil
+    SDL2
+    pthread
+    ${LIBPATH}/libopencv_core.so
+    ${LIBPATH}/libopencv_imgproc.so
+    ${LIBPATH}/libopencv_objdetect.so
+    ${LIBPATH}/libopencv_highgui.so
+    $ENV{WILTON_DIR}/build/bin/libstaticlib_json.a
+    $ENV{WILTON_DIR}/build/bin/libstaticlib_utils.a
 )
 
 if ( WIN32 )
@@ -74,11 +83,12 @@ set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
 	"$ENV{FFMPEG_DEV_DIR}/include"
 	"$ENV{SDL_DEV_DIR}/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_config/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_io/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_json/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_support/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
+        "$ENV{WILTON_DIR}/deps/staticlib_config/include"
+        "$ENV{WILTON_DIR}/deps/staticlib_io/include"
+        "$ENV{WILTON_DIR}/deps/staticlib_json/include"
+        "$ENV{WILTON_DIR}/deps/staticlib_support/include"
+        "$ENV{WILTON_DIR}/deps/staticlib_utils/include"
+)
 
 message(STATUS ${LIBS})
 message(STATUS ${WILTON_HEADERS_DIRS})

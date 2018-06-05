@@ -20,6 +20,7 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 #include "display.hpp"
+#include "checker.hpp"
 #include "photo.hpp"
 #include <iostream>
 #include <memory>
@@ -30,6 +31,10 @@ struct video_settings{
     int width, height;
     int bit_rate;
     double framerate;
+    // for face recognition
+    int checker_port;
+    std::string checker_ip, face_cascade_path;
+    int64_t wait_time_ms;
 };
 
 class video_api
@@ -37,6 +42,7 @@ class video_api
     std::shared_ptr<decoder> api_decoder;
     std::shared_ptr<encoder> api_encoder;
     std::shared_ptr<display> api_display;
+    std::shared_ptr<checker> api_checker;
 
     // settings
     video_settings settings;
@@ -66,6 +72,10 @@ public:
     bool get_start_flag() const;
     bool get_decoder_flag() const;
     bool get_encoder_flag() const;
+    bool get_checking_flag() const;
+
+    std::string start_checker_display();
+    void stop_cheking_display();
 };
 
 #endif  /* VIDEO_API_HPP */
