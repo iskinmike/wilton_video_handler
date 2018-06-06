@@ -149,21 +149,21 @@ void recognizer::display_mat(){
     recognizing_in_progress = true;
 
     frame_keeper& fk = frame_keeper::instance();
-    cv::startWindowThread();
-    std::string window_name{"MyVideo"};
-    cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE);
+//    cv::startWindowThread();
+//    std::string window_name{"MyVideo"};
+//    cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE);
     while (!stop_flag) {
         frame = fk.get_frame();
         if (nullptr != frame) {
             convert_frame_to_mat();
             recognize_faces();
-            cv::imshow(window_name, frame_mat);
+//            cv::imshow(window_name, frame_mat);
         } else {
             alert_service.send_error_message("Get NULL 'frame' from video device. Run decoder to obtain frames.");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_time_ms));
     }
-    cv::destroyWindow(window_name);
+//    cv::destroyWindow(window_name);
     stop_flag.exchange(false);
 }
 

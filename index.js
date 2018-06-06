@@ -27,6 +27,9 @@ define([
     dyload({
         name: "wilton_video_handler"
     });
+    dyload({
+        name: "wilton_net"
+    });
     var logger = new Logger("server.main");
     
     return {
@@ -66,16 +69,32 @@ define([
             thread.sleepMillis(1000);
 
             // wiltoncall("av_stop_video_display", resp);
+            var socket = {}
+            socket["ipAddress"] = "127.0.0.1";
+            socket["tcpPort"] = 7777;
+            socket["protocol"] = "TCP";
+            socket["role"] = "client";
+            socket["timeoutMillis"] = 2000;
+            var socket_handler = wiltoncall("net_socket_open", socket);
+            print("=== socket_handler: " + socket_handler);
+            
             wiltoncall("av_start_recognizer_video_display", resp);
             print("=== av_start_recognizer_video_display");
             for (var i = 0; i < 10; ++i) {
                 logger.info("Server is prepare to close ...");
                 thread.sleepMillis(1000);
+                var read_conf = {};
+                read_conf["socketHandle"] = JSON.parse(socket_handler).socketHandle;
+                read_conf["timeoutMillis"] = 1000;
+                var data = wiltoncall("net_socket_read", read_conf);
+                print("=== data: [" + data +"]")
             }
             wiltoncall("av_stop_recognizer_video_display", resp);
             print("=== av_stop_recognizer_video_display");
 
             thread.sleepMillis(1000);
+
+            wiltoncall("net_socket_close", JSON.parse(socket_handler));
 
             wiltoncall("av_stop_video_record", resp);
             flag = wiltoncall("av_is_started", resp);
