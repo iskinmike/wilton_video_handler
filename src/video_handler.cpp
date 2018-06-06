@@ -87,18 +87,18 @@ std::string av_stop_video_display(int id){
     vhandlers_keeper[id]->stop_video_display();
     return std::string{};
 }
-// display functions for checker test
-std::string av_start_checker_video_display(int id){
-    return vhandlers_keeper[id]->start_checker_display();
+// display functions for recognizer test
+std::string av_start_recognizer_video_display(int id){
+    return vhandlers_keeper[id]->start_recognizer_display();
 }
-std::string av_stop_checker_video_display(int id){
-    vhandlers_keeper[id]->stop_cheking_display();
+std::string av_stop_recognizer_video_display(int id){
+    vhandlers_keeper[id]->stop_recognizing_display();
     return std::string{};
 }
-std::string av_is_checking_in_progress(int id){
+std::string av_is_recognizing_in_progress(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
-        flag = vhandlers_keeper[id]->get_checking_flag();
+        flag = vhandlers_keeper[id]->get_recognizing_flag();
     }
     return sl::support::to_string(flag);
 }
@@ -107,7 +107,7 @@ std::string av_is_checking_in_progress(int id){
 std::string av_make_photo(int id){
     return vhandlers_keeper[id]->make_photo();
 }
-// check functions. true if encoder/decoder started
+// recogniz functions. true if encoder/decoder started
 std::string av_is_encoder_started(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
@@ -184,8 +184,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         const double error_value = -1.0;
         double framerate = error_value;
 
-        int checker_port = -1;
-        auto checker_ip = std::string{};
+        int recognizer_port = -1;
+        auto recognizer_ip = std::string{};
         auto face_cascade_path = std::string{};
         int64_t wait_time_ms = -1;
 
@@ -201,12 +201,12 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 fmt = fi.as_string_nonempty_or_throw(name);
             } else if ("title" == name) {
                 title = fi.as_string_nonempty_or_throw(name);
-            } else if ("checker_ip" == name) {
-                checker_ip = fi.as_string_nonempty_or_throw(name);
+            } else if ("recognizer_ip" == name) {
+                recognizer_ip = fi.as_string_nonempty_or_throw(name);
             } else if ("face_cascade_path" == name) {
                 face_cascade_path = fi.as_string_nonempty_or_throw(name);
-            } else if ("checker_port" == name) {
-                checker_port = fi.as_int64_or_throw(name);
+            } else if ("recognizer_port" == name) {
+                recognizer_port = fi.as_int64_or_throw(name);
             } else if ("wait_time_ms" == name) {
                 wait_time_ms = fi.as_int64_or_throw(name);
             } else if ("width" == name) {
@@ -231,7 +231,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             }
         }
 
-        // check not optional json data
+        // recognize not optional json data
         if (in.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'in' not specified"));
         if (out.empty())  throw wilton::support::exception(TRACEMSG(
@@ -242,12 +242,12 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 "Required parameter 'title' not specified"));
         if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'photo_name' not specified"));
-        if (checker_ip.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'checker_ip' not specified"));
+        if (recognizer_ip.empty())  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'recognizer_ip' not specified"));
         if (face_cascade_path.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'face_cascade_path' not specified"));
-        if (-1 == checker_port)  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'checker_port' not specified"));
+        if (-1 == recognizer_port)  throw wilton::support::exception(TRACEMSG(
+                "Required parameter 'recognizer_port' not specified"));
         if (-1 == wait_time_ms)  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'wait_time_ms' not specified"));
 
@@ -264,8 +264,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         set.bit_rate = bit_rate;
         set.photo_name = photo_name;
         set.framerate = framerate;
-        set.checker_ip = checker_ip;
-        set.checker_port = checker_port;
+        set.recognizer_ip = recognizer_ip;
+        set.recognizer_port = recognizer_port;
         set.face_cascade_path = face_cascade_path;
         set.wait_time_ms = wait_time_ms;
 
@@ -354,20 +354,20 @@ char* wilton_module_init() {
 
 
     ///////////////////////
-    // register 'av_stop_checker_video_display' function
-    auto name_av_stop_checker_video_display = std::string("av_stop_checker_video_display");
-    err = wiltoncall_register(name_av_stop_checker_video_display.c_str(), static_cast<int> (name_av_stop_checker_video_display.length()),
-            reinterpret_cast<void*> (video_handler::av_stop_checker_video_display), video_handler::vahandler_wrapper);
+    // register 'av_stop_recognizer_video_display' function
+    auto name_av_stop_recognizer_video_display = std::string("av_stop_recognizer_video_display");
+    err = wiltoncall_register(name_av_stop_recognizer_video_display.c_str(), static_cast<int> (name_av_stop_recognizer_video_display.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_recognizer_video_display), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-    // register 'av_start_checker_video_display' function
-    auto name_av_start_checker_video_display = std::string("av_start_checker_video_display");
-    err = wiltoncall_register(name_av_start_checker_video_display.c_str(), static_cast<int> (name_av_start_checker_video_display.length()),
-            reinterpret_cast<void*> (video_handler::av_start_checker_video_display), video_handler::vahandler_wrapper);
+    // register 'av_start_recognizer_video_display' function
+    auto name_av_start_recognizer_video_display = std::string("av_start_recognizer_video_display");
+    err = wiltoncall_register(name_av_start_recognizer_video_display.c_str(), static_cast<int> (name_av_start_recognizer_video_display.length()),
+            reinterpret_cast<void*> (video_handler::av_start_recognizer_video_display), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-    // register 'av_is_checking_in_progress' function
-    auto name_av_is_checking_in_progress = std::string("av_is_checking_in_progress");
-    err = wiltoncall_register(name_av_is_checking_in_progress.c_str(), static_cast<int> (name_av_is_checking_in_progress.length()),
-            reinterpret_cast<void*> (video_handler::av_is_checking_in_progress), video_handler::vahandler_wrapper);
+    // register 'av_is_recognizing_in_progress' function
+    auto name_av_is_recognizing_in_progress = std::string("av_is_recognizing_in_progress");
+    err = wiltoncall_register(name_av_is_recognizing_in_progress.c_str(), static_cast<int> (name_av_is_recognizing_in_progress.length()),
+            reinterpret_cast<void*> (video_handler::av_is_recognizing_in_progress), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
     //////////////////////
 

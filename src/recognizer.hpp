@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHECKER_HPP
-#define CHECKER_HPP
+#ifndef RECOGNIZER_HPP
+#define RECOGNIZER_HPP
 
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
@@ -80,13 +80,13 @@ public:
     void drop_alerts();
 };
 
-class checker
+class recognizer
 {
     AVFrame* frame;
     cv::Mat frame_mat;
 
     std::atomic_bool stop_flag;
-    std::thread checker_display_thread;
+    std::thread recognizer_display_thread;
     cv::CascadeClassifier face_cascade;
 //    cv::CascadeClassifier eyes_cascade;
     cv::String face_cascade_path;
@@ -94,22 +94,22 @@ class checker
 
     alert_server alert_service;
 
-    bool checking_in_progress;
-    const int allowed_faces_count = 1;
+    bool recognizing_in_progress;
     int wait_time_ms;
+    const int allowed_faces_count = 1;
 public:
-    checker(std::string ip, int port, std::string face_cascade_path, int64_t wait_time_ms);
-    ~checker();
+    recognizer(std::string ip, int port, std::string face_cascade_path, int64_t wait_time_ms);
+    ~recognizer();
 
     void convert_frame_to_mat();
     int detect_faces();
     int alert_cheating(int faces_count);
-    void check_faces();
+    void recognize_faces();
     void display_mat();
 
-    std::string run_checker_display();
-    bool is_checking(){
-        return checking_in_progress;
+    std::string run_recognizer_display();
+    bool is_recognizing(){
+        return recognizing_in_progress;
     }
     void stop_cheking_display();
 
@@ -117,4 +117,4 @@ public:
 };
 
 
-#endif  /* CHECKER_HPP */
+#endif  /* RECOGNIZER_HPP */

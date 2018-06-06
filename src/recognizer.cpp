@@ -1,4 +1,4 @@
-#include "checker.hpp"
+#include "recognizer.hpp"
 
 client_session::client_session(asio::io_service &io_service) : socket(io_service){}
 
@@ -92,16 +92,15 @@ alert_server::~alert_server(){
     stop();
 }
 
-checker::checker(std::string ip, int port, std::string face_cascade_path, int64_t wait_time_ms) :
-    stop_flag(false), alert_service(port, ip), checking_in_progress(false), face_cascade_path(face_cascade_path), wait_time_ms(wait_time_ms)
+recognizer::recognizer(std::string ip, int port, std::string face_cascade_path, int64_t wait_time_ms) :
+    frame(nullptr), stop_flag(false), alert_service(port, ip), recognizing_in_progress(false), face_cascade_path(face_cascade_path), wait_time_ms(wait_time_ms)
 {
     alert_service.listen();
 }
-checker::~checker(){
+recognizer::~recognizer(){
     alert_service.stop();
 }
-
-void checker::convert_frame_to_mat(){
+void recognizer::convert_frame_to_mat(){
     AVFrame dst;
     struct SwsContext* sws_ctx;
 
@@ -119,7 +118,7 @@ void checker::convert_frame_to_mat(){
     sws_scale(sws_ctx, frame->data, frame->linesize, 0, h,
               dst.data, dst.linesize);
 }
-int checker::detect_faces(){
+int recognizer::detect_faces(){
     std::vector<cv::Rect> faces;
     cv::Mat frame_gray;
 
@@ -137,17 +136,17 @@ int checker::detect_faces(){
 
     return faces.size();
 }
-int checker::alert_cheating(int faces_count){
+int recognizer::alert_cheating(int faces_count){
     alert_service.send_cheating_alert_message(faces_count);
 }
-void checker::check_faces(){
+void recognizer::recognize_faces(){
     int faces_count = detect_faces();
     if (faces_count != allowed_faces_count) {
         alert_cheating(faces_count);
     }
 }
-void checker::display_mat(){
-    checking_in_progress = true;
+void recognizer::display_mat(){
+    recognizing_in_progress = true;
 
     frame_keeper& fk = frame_keeper::instance();
     cv::startWindowThread();
@@ -156,10 +155,11 @@ void checker::display_mat(){
     while (!stop_flag) {
         frame = fk.get_frame();
         if (nullptr != frame) {
-            alert_service.send_error_message("Get NULL 'frame' from video device. Run decoder to obtain frames.");
             convert_frame_to_mat();
-            check_faces();
+            recognize_faces();
             cv::imshow(window_name, frame_mat);
+        } else {
+            alert_service.send_error_message("Get NULL 'frame' from video device. Run decoder to obtain frames.");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_time_ms));
     }
@@ -167,20 +167,20 @@ void checker::display_mat(){
     stop_flag.exchange(false);
 }
 
-std::string checker::run_checker_display(){
+std::string recognizer::run_recognizer_display(){
     if( !face_cascade.load( face_cascade_path ) ){
         return std::string{"Can't load face cascade data. Face recognition not working."};
     };
-    checker_display_thread = std::thread([this] (){
+    recognizer_display_thread = std::thread([this] (){
         this->display_mat();
     });
     return std::string{};
 }
 
-void checker::stop_cheking_display() {
+void recognizer::stop_cheking_display() {
     stop_flag.exchange(true);
-    if (checker_display_thread.joinable()) {
-        checker_display_thread.join();
+    if (recognizer_display_thread.joinable()) {
+        recognizer_display_thread.join();
     }
-    checking_in_progress = false;
+    recognizing_in_progress = false;
 }

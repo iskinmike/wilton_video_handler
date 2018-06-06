@@ -34,7 +34,7 @@ endif(EXISTS "/etc/redhat-release")
 
 set(SOURCES
     src/frame_keeper.cpp
-    src/checker.cpp
+    src/recognizer.cpp
     src/decoder.cpp
     src/encoder.cpp
     src/display.cpp
