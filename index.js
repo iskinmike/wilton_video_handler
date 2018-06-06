@@ -45,30 +45,41 @@ define([
             settings["height"] = 480;
             settings["pos_x"] = 800;
             settings["pos_y"] = 300;
-            settings["bit_rate"] = 40000;
+            settings["bit_rate"] = 150000;
             settings["photo_name"] = "photo.png";
-            settings["framerate"] = parseFloat("4.4");
+            settings["framerate"] = parseFloat("10");
+            settings["recognizer_ip"] = "127.0.0.1";
+            settings["recognizer_port"] = 7777;
+            settings["wait_time_ms"] = 250;
+            settings["face_cascade_path"] = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml";
 
             var resp = wiltoncall("av_inti_handler", settings);
             wiltoncall("av_start_video_record", 1);
-            wiltoncall("av_start_video_display", resp);
-            for (var i = 0; i < 10; ++i) {
-                logger.info("Server is running ...");
-                thread.sleepMillis(1000);
-            }
-            wiltoncall("av_make_photo", resp);
+            // wiltoncall("av_start_video_display", resp);
+            // for (var i = 0; i < 1; ++i) {
+                // logger.info("Server is running ...");
+                // thread.sleepMillis(1000);
+            // }
+            // wiltoncall("av_make_photo", resp);
             var flag = wiltoncall("av_is_started", resp);
-            print("is started: " + flag)
+            // print("is started: " + flag)
             thread.sleepMillis(1000);
 
-            wiltoncall("av_stop_video_display", resp);
-            wiltoncall("av_stop_video_record", resp);
-            for (var i = 0; i < 2; ++i) {
+            // wiltoncall("av_stop_video_display", resp);
+            wiltoncall("av_start_recognizer_video_display", resp);
+            print("=== av_start_recognizer_video_display");
+            for (var i = 0; i < 10; ++i) {
                 logger.info("Server is prepare to close ...");
                 thread.sleepMillis(1000);
             }
+            wiltoncall("av_stop_recognizer_video_display", resp);
+            print("=== av_stop_recognizer_video_display");
+
+            thread.sleepMillis(1000);
+
+            wiltoncall("av_stop_video_record", resp);
             flag = wiltoncall("av_is_started", resp);
-            print("is started: " + flag)
+            // print("is started: " + flag)
             wiltoncall("av_delete_handler", resp);
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is closed wait ...");
