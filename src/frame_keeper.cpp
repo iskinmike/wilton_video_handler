@@ -14,9 +14,9 @@ void frame_keeper::wait_new_frame()
         sync_array.push_back(&waiter);
     }
     std::unique_lock<std::mutex> lck(cond_mtx);
-    while (!waiter.flag) {
+//    while (!waiter.flag) {
         waiter.cond.wait_for(lck, std::chrono::seconds(1));
-    }
+//    }
 }
 
 void frame_keeper::assig_new_frames(AVFrame* new_frame, AVFrame *new_origin_frame)

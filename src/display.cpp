@@ -7,6 +7,10 @@ void display::run_display()
     frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
         display_frame(fk.get_current_frame());
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if( event.type == SDL_QUIT ) break;
+        }
     }
     stop_flag.exchange(false);
 }
@@ -55,7 +59,7 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
-                            SDL_TEXTUREACCESS_STREAMING, width, height);
+                            SDL_TEXTUREACCESS_STATIC, width, height);
     if (!texture) {
         return std::string("SDL: could not create texture - exiting");
     }
