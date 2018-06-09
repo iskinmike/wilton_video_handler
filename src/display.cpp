@@ -6,7 +6,7 @@ void display::run_display()
 {
     frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        display_frame(fk.get_frame());
+        display_frame(fk.get_current_frame());
     }
     stop_flag.exchange(false);
 }
@@ -25,9 +25,7 @@ void display::send_result(std::string result){
 }
 
 display::~display(){
-    if (display_thread.joinable()) {
-        display_thread.join();
-    }
+    stop_display();
 }
 
 std::string display::init(int pos_x, int pos_y, int width, int height)
@@ -43,7 +41,10 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
       return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
     }
 
-    screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height, 0);
+    screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_OPENGL);
+    SDL_RaiseWindow(screen); // rise above other windows
+
     if(!screen) {
         return std::string("SDL: could not set video mode - exiting");
     }
@@ -59,6 +60,7 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
         return std::string("SDL: could not create texture - exiting");
     }
 
+    initialized = true;
     return std::string{};
 }
 
@@ -75,8 +77,14 @@ void display::stop_display()
 {
     stop_flag.exchange(true);
     if (display_thread.joinable()) display_thread.join();
-    SDL_DestroyWindow(screen);
-    SDL_DestroyRenderer(renderer);
+    if (initialized) {
+        SDL_DestroyWindow(screen);
+        SDL_DestroyRenderer(renderer);
+    }
+}
+
+bool display::is_initialized() const {
+    return initialized;
 }
 
 void display::display_frame(AVFrame *frame)

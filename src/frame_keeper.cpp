@@ -14,7 +14,9 @@ void frame_keeper::wait_new_frame()
         sync_array.push_back(&waiter);
     }
     std::unique_lock<std::mutex> lck(cond_mtx);
-    while (!waiter.flag) waiter.cond.wait_for(lck, std::chrono::seconds(1));
+    while (!waiter.flag) {
+        waiter.cond.wait_for(lck, std::chrono::seconds(1));
+    }
 }
 
 void frame_keeper::assig_new_frames(AVFrame* new_frame, AVFrame *new_origin_frame)
@@ -33,12 +35,25 @@ void frame_keeper::assig_new_frames(AVFrame* new_frame, AVFrame *new_origin_fram
 
 AVFrame* frame_keeper::get_frame()
 {
+    int proxy_id = 0;
+    return get_frame(proxy_id);
+}
+
+AVFrame* frame_keeper::get_frame(int& id)
+{
     wait_new_frame();
+    std::lock_guard<std::mutex> lock(mtx);
     return av_frame_clone(frame);
 }
 
 AVFrame* frame_keeper::get_origin_frame()
 {
     wait_new_frame();
+    std::lock_guard<std::mutex> lock(mtx);
     return av_frame_clone(origin_frame);
+}
+
+AVFrame *frame_keeper::get_current_frame(){
+    std::lock_guard<std::mutex> lock(mtx);
+    return av_frame_clone(frame);
 }

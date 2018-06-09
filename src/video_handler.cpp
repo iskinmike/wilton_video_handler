@@ -118,6 +118,13 @@ std::string av_is_decoder_started(int id){
     }
     return sl::support::to_string(flag);
 }
+std::string av_is_display_started(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_display_flag();
+    }
+    return sl::support::to_string(flag);
+}
 // return if video write is started, i.e. (av_is_decoder_started() && av_is_encoder_started())
 std::string av_is_started(int id){
     bool flag = false;
@@ -338,6 +345,11 @@ char* wilton_module_init() {
     auto name_av_is_encoder_started = std::string("av_is_encoder_started");
     err = wiltoncall_register(name_av_is_encoder_started.c_str(), static_cast<int> (name_av_is_encoder_started.length()),
             reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_is_display_started' function
+    auto name_av_is_display_started = std::string("av_is_display_started");
+    err = wiltoncall_register(name_av_is_display_started.c_str(), static_cast<int> (name_av_is_display_started.length()),
+            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function

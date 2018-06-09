@@ -44,6 +44,7 @@ class video_api
     bool start_flag;
     bool encoder_start_flag;
     bool decoder_start_flag;
+    bool display_start_flag;
 
 public:
     video_api(video_settings set);
@@ -66,6 +67,7 @@ public:
     bool get_start_flag() const;
     bool get_decoder_flag() const;
     bool get_encoder_flag() const;
+    bool get_display_flag() const;
 };
 
 #endif  /* VIDEO_API_HPP */

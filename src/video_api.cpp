@@ -16,7 +16,13 @@ bool video_api::get_encoder_flag() const
     return encoder_start_flag;
 }
 
-video_api::video_api(video_settings set) : start_flag(false), encoder_start_flag(false), decoder_start_flag(false)
+bool video_api::get_display_flag() const
+{
+    return display_start_flag;
+}
+
+video_api::video_api(video_settings set) : start_flag(false),
+    encoder_start_flag(false), decoder_start_flag(false), display_start_flag(false)
 {
     settings = set;
     api_decoder = std::shared_ptr<decoder> (new decoder(set.input_file, set.format,
@@ -45,8 +51,13 @@ std::string video_api::start_video_record()
 
 std::string video_api::start_video_display()
 {
-    return api_display->start_display(settings.pos_x, settings.pos_y,
-            api_decoder->get_width(), api_decoder->get_height());
+    auto result = std::string{};
+    if (decoder_start_flag) {
+        result = api_display->start_display(settings.pos_x, settings.pos_y,
+                                            api_decoder->get_width(), api_decoder->get_height());
+        if (result.empty()) display_start_flag = true;
+    }
+    return result;
 }
 
 std::string video_api::init_encoder() {
@@ -109,7 +120,10 @@ void video_api::stop_video_record()
 
 void video_api::stop_video_display()
 {
-    api_display->stop_display();
+    if (display_start_flag) {
+        api_display->stop_display();
+        display_start_flag = false;
+    }
 }
 
 std::string video_api::make_photo()
