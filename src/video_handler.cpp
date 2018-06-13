@@ -27,17 +27,32 @@
 #include <memory>
 #include <map>
 
-#include "staticlib/json.hpp"
+//#include "staticlib/json.hpp"
 #include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
 #include "video_api.hpp"
 #include "frame_keeper.hpp"
 
+#include "jansson.h"
+
 namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
+int64_t get_integer_or_throw(const std::string& key, json_t* value) {
+    if (json_is_integer(value)) {
+        return json_integer_value(value);
+    }
+    throw wilton::support::exception(TRACEMSG("Error: Key [" + key+ "] don't contains integer value"));
+}
+std::string get_string_or_throw(const std::string& key, json_t* value) {
+    if (json_is_string(value)) {
+        return std::string{json_string_value(value)};
+    }
+    throw wilton::support::exception(TRACEMSG("Error: Key [" + key + "] don't contains string value"));
+}
+
 }
 // handler functions
 int av_init_handler(int id, const std::string& in, const std::string& out,
@@ -109,21 +124,21 @@ std::string av_is_encoder_started(int id){
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_encoder_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 std::string av_is_decoder_started(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_decoder_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 std::string av_is_display_started(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_display_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 // return if video write is started, i.e. (av_is_decoder_started() && av_is_encoder_started())
 std::string av_is_started(int id){
@@ -131,7 +146,7 @@ std::string av_is_started(int id){
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_start_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
@@ -174,7 +189,14 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                                            const std::string&, const std::string&, const std::string&,
                                            const int&, const int&, const int&, const int&, const int&, double)> (ctx);
 
-        sl::json::value json = sl::json::loads(std::string(data_in, data_in_len));
+        json_t *root;
+        json_error_t error;
+
+        root = json_loadb(data_in, data_in_len, 0, &error);
+        if(!root) {
+            throw wilton::support::exception(TRACEMSG("Error: " + std::string{error.text}));
+        }
+
         int id = 0;
         auto in = std::string{};
         auto out = std::string{};
@@ -188,39 +210,79 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int bit_rate = -1;
         const double error_value = -1.0;
         double framerate = error_value;
-        for (const sl::json::field& fi : json.as_object()) {
-            auto& name = fi.name();
-            if ("id" == name) {
-                id = fi.as_int64_or_throw(name);
-            } else if ("in" == name) {
-                in = fi.as_string_nonempty_or_throw(name);
-            } else if ("out" == name) {
-                out = fi.as_string_nonempty_or_throw(name);
-            } else if ("fmt" == name) {
-                fmt = fi.as_string_nonempty_or_throw(name);
-            } else if ("title" == name) {
-                title = fi.as_string_nonempty_or_throw(name);
-            } else if ("width" == name) {
-                width = fi.as_int64_or_throw(name);
-            } else if ("height" == name) {
-                height = fi.as_int64_or_throw(name);
-            } else if ("pos_x" == name) {
-                pos_x = fi.as_int64_or_throw(name);
-            } else if ("pos_y" == name) {
-                pos_y = fi.as_int64_or_throw(name);
-            } else if ("bit_rate" == name) {
-                bit_rate = fi.as_int64_or_throw(name);
-            } else if ("photo_name" == name) {
-                photo_name = fi.as_string_nonempty_or_throw(name);
-            } else if ("framerate" == name) {
-                framerate = fi.as_double(error_value);
-                if (error_value == framerate) {
-                    framerate = fi.as_int64_or_throw(name);
+
+        /* obj is a JSON object */
+        const char *key;
+        json_t *value;
+
+        json_object_foreach(root, key, value) {
+            auto key_str = std::string{key};
+            if ("id" == key_str) {
+                id = get_integer_or_throw(key_str, value);
+            } else if ("in" == key_str) {
+                in = get_string_or_throw(key_str, value);
+            } else if ("out" == key_str) {
+                out = get_string_or_throw(key_str, value);
+            } else if ("fmt" == key_str) {
+                fmt = get_string_or_throw(key_str, value);
+            } else if ("title" == key_str) {
+                title = get_string_or_throw(key_str, value);
+            } else if ("width" == key_str) {
+                width = get_integer_or_throw(key_str, value);
+            } else if ("height" == key_str) {
+                height = get_integer_or_throw(key_str, value);
+            } else if ("pos_x" == key_str) {
+                pos_x = get_integer_or_throw(key_str, value);
+            } else if ("pos_y" == key_str) {
+                pos_y = get_integer_or_throw(key_str, value);
+            } else if ("bit_rate" == key_str) {
+                bit_rate = get_integer_or_throw(key_str, value);
+            } else if ("photo_name" == key_str) {
+                photo_name = get_string_or_throw(key_str, value);
+            } else if ("framerate" == key_str) {
+                if (json_is_real(value)) {
+                    framerate = json_real_value(value);
+                } else {
+                    framerate = get_integer_or_throw(key_str, value);
                 }
             } else {
-                throw wilton::support::exception(TRACEMSG("Unknown data field: [" + name + "]"));
+                throw wilton::support::exception(TRACEMSG("Unknown data field: [" + key + "]"));
             }
         }
+
+//        for (const sl::json::field& fi : json.as_object()) {
+//            auto& name = fi.name();
+//            if ("id" == name) {
+//                id = fi.as_int64_or_throw(name);
+//            } else if ("in" == name) {
+//                in = fi.as_string_nonempty_or_throw(name);
+//            } else if ("out" == name) {
+//                out = fi.as_string_nonempty_or_throw(name);
+//            } else if ("fmt" == name) {
+//                fmt = fi.as_string_nonempty_or_throw(name);
+//            } else if ("title" == name) {
+//                title = fi.as_string_nonempty_or_throw(name);
+//            } else if ("width" == name) {
+//                width = fi.as_int64_or_throw(name);
+//            } else if ("height" == name) {
+//                height = fi.as_int64_or_throw(name);
+//            } else if ("pos_x" == name) {
+//                pos_x = fi.as_int64_or_throw(name);
+//            } else if ("pos_y" == name) {
+//                pos_y = fi.as_int64_or_throw(name);
+//            } else if ("bit_rate" == name) {
+//                bit_rate = fi.as_int64_or_throw(name);
+//            } else if ("photo_name" == name) {
+//                photo_name = fi.as_string_nonempty_or_throw(name);
+//            } else if ("framerate" == name) {
+//                framerate = fi.as_double(error_value);
+//                if (error_value == framerate) {
+//                    framerate = fi.as_int64_or_throw(name);
+//                }
+//            } else {
+//                throw wilton::support::exception(TRACEMSG("Unknown data field: [" + name + "]"));
+//            }
+//        }
 
         // check not optional json data
         if (in.empty())  throw wilton::support::exception(TRACEMSG(
@@ -234,7 +296,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
                 "Required parameter 'photo_name' not specified"));
 
-        std::string output = sl::support::to_string(fun(id, in, out, fmt, title, photo_name,
+        std::string output = std::to_string(fun(id, in, out, fmt, title, photo_name,
                 width, height, pos_x, pos_y, bit_rate, framerate));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine

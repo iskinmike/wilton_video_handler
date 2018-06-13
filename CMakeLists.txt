@@ -32,6 +32,11 @@ if(EXISTS "/etc/redhat-release")
      set ( PLATFORM_INCLUDE "/usr/include/ffmpeg")
 endif(EXISTS "/etc/redhat-release")
 
+set(JANSSON_BUILD_DOCS OFF)
+include_directories(jansson/include)
+link_directories(jansson/lib)
+add_subdirectory(jansson)
+
 set(SOURCES
     src/frame_keeper.cpp
     src/decoder.cpp
@@ -50,7 +55,9 @@ set(LIBS
   avutil
   SDL2
   pthread
+  jansson
 )
+
 
 if ( WIN32 )
   set(LIBS 
@@ -72,13 +79,11 @@ endif ( )
 
 set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
-	"$ENV{FFMPEG_DEV_DIR}/include"
-	"$ENV{SDL_DEV_DIR}/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_config/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_io/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_json/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_support/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
+    "$ENV{FFMPEG_DEV_DIR}/include"
+    "$ENV{SDL_DEV_DIR}/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_config/include"
+    "$ENV{WILTON_DIR}/deps/staticlib_support/include"
+  )
 
 message(STATUS ${LIBS})
 message(STATUS ${WILTON_HEADERS_DIRS})
