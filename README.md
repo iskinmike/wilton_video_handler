@@ -60,6 +60,7 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_is_started(**id**) | Returns 1 if record is started, 0 if not. Required handler's **id** |
 | av_is_decoder_started(**id**) | Returns 1 if decoder is started, 0 if not. Required handler's **id** |
 | av_is_encoder_started(**id**) | Returns 1 if encoder is started, 0 if not. Required handler's **id** |
+| av_is_display_started(**id**) | Returns 1 if display of frames is started, 0 if not. Required handler's **id** |
 
 
 Settings json: 
@@ -76,8 +77,8 @@ Settings json:
   "bit_rate" : 150000,        // optional. Default: device bit_rate
   "framerate" : 4.4,          // optional, should be setted as float value. Default: 25.0 
   // pixel pos of left top corner of created display
-  "pos_x" : 800,              // optional. Default: 100
-  "pos_y" : 300               // optional. Default: 100
+  "pos_x" : 800,              // optional. Position X of created window. Default: 100
+  "pos_y" : 300               // optional. Position Y of created window. Default: 100
 }
 ```
 
@@ -106,9 +107,11 @@ Changes for windows:
 A more detailed example in **index.js**
 
 
-###errors handling
+### errors handling
 
-If video handler with **id** doesn't exists function return errror message in json string:
+Errors returned as stringify JSON with error property.
+
+For example, if video handler with **id** doesn't exists function return errror message in json string:
 
 ```JavaScript
 { 

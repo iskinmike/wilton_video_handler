@@ -156,12 +156,12 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
         *data_out_len = static_cast<int>(output.length());
         return nullptr;
     } catch (const std::exception& e) {
-        auto what = std::string{"{ \"error\": \"" + std::string{e.what()} + "\"}"};
+        auto what = std::string(e.what());
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
         std::memcpy(err, what.c_str(), what.length() + 1);
         return err;
     } catch (...) {
-        auto what = std::string{"{ \"error\": \"CALL ERROR\"}"};
+        auto what = std::string("CALL ERROR"); // std::string(e.what());
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
         std::memcpy(err, what.c_str(), what.length() + 1);
         return err;
@@ -247,12 +247,12 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         return nullptr;
 
     } catch (const std::exception& e) {
-        auto what = std::string{"{ \"error\": \"" + std::string{e.what()} + "\"}"};
+        auto what = std::string(e.what());
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
         std::memcpy(err, what.c_str(), what.length() + 1);
         return err;
     } catch (...) {
-        auto what = std::string{"{ \"error\": \"CALL ERROR\"}"};
+        auto what = std::string("CALL ERROR");
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
         std::memcpy(err, what.c_str(), what.length() + 1);
         return err;
