@@ -39,10 +39,12 @@ bool encoder::is_initialized() const
 encoder::~encoder()
 {
     stop_encoding();
-    avcodec_close(out_stream->codec);
-    avformat_flush(out_format_ctx);
-    // automatically set pOutFormatCtx to NULL and frees all its allocated data
-    avformat_free_context(out_format_ctx);
+    if (initialized) {
+        avcodec_close(out_stream->codec);
+        avformat_flush(out_format_ctx);
+        // automatically set pOutFormatCtx to NULL and frees all its allocated data
+        avformat_free_context(out_format_ctx);
+    }
 }
 
 // OutFormat And OutStream based on muxing.c example by Fabrice Bellard
@@ -131,8 +133,10 @@ void encoder::stop_encoding()
     if (encoder_thread.joinable()) {
         encoder_thread.join();
     }
-    fflush_encoder();
-    close_file();
+    if (initialized) {
+        fflush_encoder();
+        close_file();
+    }
 }
 
 int encoder::encode_frame(AVFrame* frame)

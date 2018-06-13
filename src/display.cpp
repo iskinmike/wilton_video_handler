@@ -18,7 +18,12 @@ void display::run_display()
 std::string display::wait_result(){
     sync_point.flag.exchange(false);
     std::unique_lock<std::mutex> lck(cond_mtx);
-    while (!sync_point.flag) sync_point.cond.wait_for(lck, std::chrono::seconds(4));
+    while (!sync_point.flag) {
+        std::cv_status status = sync_point.cond.wait_for(lck, std::chrono::seconds(4));
+        if (std::cv_status::timeout == status) {
+            break;
+        }
+    }
     return init_result;
 }
 
@@ -47,7 +52,9 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_OPENGL);
+    SDL_SetWindowFullscreen(screen, SDL_TRUE);
     SDL_RaiseWindow(screen); // rise above other windows
+    SDL_SetWindowFullscreen(screen, SDL_FALSE);
 
     if(!screen) {
         return std::string("SDL: could not set video mode - exiting");
