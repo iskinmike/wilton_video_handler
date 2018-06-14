@@ -34,12 +34,13 @@
 #include "video_api.hpp"
 #include "frame_keeper.hpp"
 
-#include "jansson.h"
-
 namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
+} // anonymous namespace
+namespace json {
+#include "jansson.h"
 int64_t get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
         return json_integer_value(value);
@@ -52,8 +53,8 @@ std::string get_string_or_throw(const std::string& key, json_t* value) {
     }
     throw wilton::support::exception(TRACEMSG("Error: Key [" + key + "] don't contains string value"));
 }
-
 }
+
 // handler functions
 int av_init_handler(int id, const std::string& in, const std::string& out,
                 const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
@@ -189,10 +190,10 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                                            const std::string&, const std::string&, const std::string&,
                                            const int&, const int&, const int&, const int&, const int&, double)> (ctx);
 
-        json_t *root;
-        json_error_t error;
+        json::json_t *root;
+        json::json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        root = json::json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw wilton::support::exception(TRACEMSG("Error: " + std::string{error.text}));
         }
@@ -213,37 +214,42 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
 
         /* obj is a JSON object */
         const char *key;
-        json_t *value;
+        json::json_t *value;
 
-        json_object_foreach(root, key, value) {
+//        json::json_object_foreach(root, key, value) {
+        for(key = json::json_object_iter_key(json::json_object_iter(root));
+            key && (value = json::json_object_iter_value(json::json_object_key_to_iter(key)));
+            key = json::json_object_iter_key(json::json_object_iter_next(root, json::json_object_key_to_iter(key)))){
+
+
             auto key_str = std::string{key};
             if ("id" == key_str) {
-                id = get_integer_or_throw(key_str, value);
+                id = json::get_integer_or_throw(key_str, value);
             } else if ("in" == key_str) {
-                in = get_string_or_throw(key_str, value);
+                in = json::get_string_or_throw(key_str, value);
             } else if ("out" == key_str) {
-                out = get_string_or_throw(key_str, value);
+                out = json::get_string_or_throw(key_str, value);
             } else if ("fmt" == key_str) {
-                fmt = get_string_or_throw(key_str, value);
+                fmt = json::get_string_or_throw(key_str, value);
             } else if ("title" == key_str) {
-                title = get_string_or_throw(key_str, value);
+                title = json::get_string_or_throw(key_str, value);
             } else if ("width" == key_str) {
-                width = get_integer_or_throw(key_str, value);
+                width = json::get_integer_or_throw(key_str, value);
             } else if ("height" == key_str) {
-                height = get_integer_or_throw(key_str, value);
+                height = json::get_integer_or_throw(key_str, value);
             } else if ("pos_x" == key_str) {
-                pos_x = get_integer_or_throw(key_str, value);
+                pos_x = json::get_integer_or_throw(key_str, value);
             } else if ("pos_y" == key_str) {
-                pos_y = get_integer_or_throw(key_str, value);
+                pos_y = json::get_integer_or_throw(key_str, value);
             } else if ("bit_rate" == key_str) {
-                bit_rate = get_integer_or_throw(key_str, value);
+                bit_rate = json::get_integer_or_throw(key_str, value);
             } else if ("photo_name" == key_str) {
-                photo_name = get_string_or_throw(key_str, value);
+                photo_name = json::get_string_or_throw(key_str, value);
             } else if ("framerate" == key_str) {
-                if (json_is_real(value)) {
-                    framerate = json_real_value(value);
+                if (root->type == json::JSON_REAL) {
+                    framerate = json::json_real_value(value);
                 } else {
-                    framerate = get_integer_or_throw(key_str, value);
+                    framerate = json::get_integer_or_throw(key_str, value);
                 }
             } else {
                 throw wilton::support::exception(TRACEMSG("Unknown data field: [" + key + "]"));
