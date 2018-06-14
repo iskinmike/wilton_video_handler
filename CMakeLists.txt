@@ -58,7 +58,6 @@ set(LIBS
   jansson
 )
 
-
 if ( WIN32 )
   set(LIBS 
     "$ENV{FFMPEG_DEV_DIR}/lib/avformat.lib"
@@ -76,18 +75,14 @@ if ( WIN32 )
   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
 endif ( )
 
-set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
     "${CMAKE_CURRENT_BINARY_DIR}/jansson/include"
     "$ENV{FFMPEG_DEV_DIR}/include"
     "$ENV{SDL_DEV_DIR}/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_config/include"
-    "$ENV{WILTON_DIR}/deps/staticlib_support/include"
   )
 
 message(STATUS ${LIBS})
 message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
-message(STATUS ${WILTON_HEADERS_DIRS})
 message(STATUS ${STATICLIBS_HEADERS_DIRS})
 
 if ( WIN32 )
@@ -100,7 +95,6 @@ add_library ( ${PROJECT_NAME} SHARED
 
 target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
         $ENV{WILTON_HOME}/devel/include
-        ${WILTON_HEADERS_DIRS}
         ${PLATFORM_INCLUDE}
         ${STATICLIBS_HEADERS_DIRS})
 

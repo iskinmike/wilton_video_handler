@@ -27,7 +27,7 @@
 #include <memory>
 #include <map>
 
-#include "wilton/support/exception.hpp"
+//#include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
 #include "video_api.hpp"
@@ -43,14 +43,14 @@ int64_t get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
         return json_integer_value(value);
     }
-    throw wilton::support::exception(TRACEMSG("Error: Key [" + key+ "] don't contains integer value"));
+    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
 }
 std::string get_string_or_throw(const std::string& key, json_t* value) {
     if (json_is_string(value)) {
         return std::string{json_string_value(value)};
     }
-    throw wilton::support::exception(TRACEMSG("Error: Key [" + key + "] don't contains string value"));
-}
+    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains string value"});
+} // anonymous namespace
 
 }
 // handler functions
@@ -193,7 +193,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
 
         root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
-            throw wilton::support::exception(TRACEMSG("Error: " + std::string{error.text}));
+            throw std::invalid_argument("Error: " + std::string{error.text});
         }
 
         int id = 0;
@@ -245,21 +245,22 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                     framerate = get_integer_or_throw(key_str, value);
                 }
             } else {
-                throw wilton::support::exception(TRACEMSG("Unknown data field: [" + key + "]"));
+                std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
+                throw std::invalid_argument(err_msg);
             }
         }
 
         // check not optional json data
-        if (in.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'in' not specified"));
-        if (out.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'out' not specified"));
-        if (fmt.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'fmt' not specified"));
-        if (title.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'title' not specified"));
-        if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'photo_name' not specified"));
+        if (in.empty())  throw std::invalid_argument(
+                "Required parameter 'in' not specified");
+        if (out.empty())  throw std::invalid_argument(
+                "Required parameter 'out' not specified");
+        if (fmt.empty())  throw std::invalid_argument(
+                "Required parameter 'fmt' not specified");
+        if (title.empty())  throw std::invalid_argument(
+                "Required parameter 'title' not specified");
+        if (photo_name.empty())  throw std::invalid_argument(
+                "Required parameter 'photo_name' not specified");
 
         std::string output = std::to_string(fun(id, in, out, fmt, title, photo_name,
                 width, height, pos_x, pos_y, bit_rate, framerate));
@@ -286,7 +287,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     }
 }
 
-} // namespace
+} // namespace video_handler
 
 // this function is called on module load,
 // must return NULL on success
