@@ -4,6 +4,16 @@
 #include <iostream>
 
 namespace photo{
+
+namespace {
+    std::string error_return(std::string message){
+        auto error = std::string{"{ \"error\": \""};
+        error += message;
+        error += "\"}";
+        return error;
+    }
+}
+
 std::string make_photo(std::string out_file)
 {
     AVFrame* frame_rgb;
@@ -13,7 +23,7 @@ std::string make_photo(std::string out_file)
     AVFrame* frame = fk.get_origin_frame();
 
     if (nullptr == frame) {
-        return std::string("Can't make Photo. Get 'NULL'' frame.");
+        return error_return("Can't make Photo. Get 'NULL'' frame.");
     }
 
     sws_ctx = sws_getContext
@@ -62,14 +72,14 @@ std::string make_photo(std::string out_file)
 
     int ret = 0;
     ret = avformat_alloc_output_context2(&out_format_ctx, NULL, NULL, out_file.c_str());
-    if (0 > ret) return std::string("Could not allocate output_context for photo");
+    if (0 > ret) return error_return("Could not allocate output_context for photo");
 
     // find encoder codec
     encode_codec = avcodec_find_encoder(AV_CODEC_ID_PNG);
-    if (!encode_codec) return std::string("Codec not found for photo");
+    if (!encode_codec) return error_return("Codec not found for photo");
 
     out_stream = avformat_new_stream(out_format_ctx, encode_codec);
-    if (!out_stream) return std::string("Could not allocate stream for photo");
+    if (!out_stream) return error_return("Could not allocate stream for photo");
 
     // settings
     out_stream->codec->pix_fmt = AV_PIX_FMT_RGB24;
@@ -83,13 +93,13 @@ std::string make_photo(std::string out_file)
 
     // need open codec
     if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
-        return std::string("Can't open codec to encode photo");
+        return error_return("Can't open codec to encode photo");
     }
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
     if (0 > ret) {
-        return (std::string("Could not open ") + out_file);
+        return error_return(std::string("Could not open ") + out_file);
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);
@@ -102,7 +112,7 @@ std::string make_photo(std::string out_file)
 
     ret = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame_rgb, &got_pack);
     if (0 != ret) {
-        return std::string("photo encoder error");
+        return error_return("photo encoder error");
     }
 
     av_write_frame(out_format_ctx, &tmp_pack);

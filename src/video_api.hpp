@@ -50,6 +50,7 @@ class video_api
     bool start_flag;
     bool encoder_start_flag;
     bool decoder_start_flag;
+    bool display_start_flag;
 
 public:
     video_api(video_settings set);
@@ -73,6 +74,7 @@ public:
     bool get_decoder_flag() const;
     bool get_encoder_flag() const;
     bool get_recognizing_flag() const;
+    bool get_display_flag() const;
 
     std::string start_recognizer_display();
     void stop_recognizing_display();

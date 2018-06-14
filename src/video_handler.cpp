@@ -27,22 +27,33 @@
 #include <memory>
 #include <map>
 
-#include "staticlib/json.hpp"
-#include "wilton/support/exception.hpp"
+//#include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
 #include "video_api.hpp"
 #include "frame_keeper.hpp"
 
+#include "jansson.h"
+
 namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
+int64_t get_integer_or_throw(const std::string& key, json_t* value) {
+    if (json_is_integer(value)) {
+        return json_integer_value(value);
+    }
+    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
+}
+std::string get_string_or_throw(const std::string& key, json_t* value) {
+    if (json_is_string(value)) {
+        return std::string{json_string_value(value)};
+    }
+    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains string value"});
+} // anonymous namespace
+
 }
 // handler functions
-//int av_init_handler(int id, const std::string& in, const std::string& out,
-//                const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
-//                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
 int av_init_handler(int id, video_settings settings) {
     if (vhandlers_keeper.count(id)){
         vhandlers_keeper.erase(id);
@@ -100,7 +111,7 @@ std::string av_is_recognizing_in_progress(int id){
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_recognizing_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 
 // takes photo from decoded frame
@@ -113,14 +124,21 @@ std::string av_is_encoder_started(int id){
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_encoder_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 std::string av_is_decoder_started(int id){
     bool flag = false;
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_decoder_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
+}
+std::string av_is_display_started(int id){
+    bool flag = false;
+    if (vhandlers_keeper.count(id)) {
+        flag = vhandlers_keeper[id]->get_display_flag();
+    }
+    return std::to_string(flag);
 }
 // return if video write is started, i.e. (av_is_decoder_started() && av_is_encoder_started())
 std::string av_is_started(int id){
@@ -128,7 +146,7 @@ std::string av_is_started(int id){
     if (vhandlers_keeper.count(id)) {
         flag = vhandlers_keeper[id]->get_start_flag();
     }
-    return sl::support::to_string(flag);
+    return std::to_string(flag);
 }
 
 char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
@@ -169,7 +187,14 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     try {
         auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
 
-        sl::json::value json = sl::json::loads(std::string(data_in, data_in_len));
+        json_t *root;
+        json_error_t error;
+
+        root = json_loadb(data_in, data_in_len, 0, &error);
+        if(!root) {
+            throw std::invalid_argument("Error: " + std::string{error.text});
+        }
+
         int id = 0;
         auto in = std::string{};
         auto out = std::string{};
@@ -183,74 +208,76 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int bit_rate = -1;
         const double error_value = -1.0;
         double framerate = error_value;
-
         int recognizer_port = -1;
         auto recognizer_ip = std::string{};
         auto face_cascade_path = std::string{};
         int64_t wait_time_ms = -1;
 
-        for (const sl::json::field& fi : json.as_object()) {
-            auto& name = fi.name();
-            if ("id" == name) {
-                id = fi.as_int64_or_throw(name);
-            } else if ("in" == name) {
-                in = fi.as_string_nonempty_or_throw(name);
-            } else if ("out" == name) {
-                out = fi.as_string_nonempty_or_throw(name);
-            } else if ("fmt" == name) {
-                fmt = fi.as_string_nonempty_or_throw(name);
-            } else if ("title" == name) {
-                title = fi.as_string_nonempty_or_throw(name);
-            } else if ("recognizer_ip" == name) {
-                recognizer_ip = fi.as_string_nonempty_or_throw(name);
-            } else if ("face_cascade_path" == name) {
-                face_cascade_path = fi.as_string_nonempty_or_throw(name);
-            } else if ("recognizer_port" == name) {
-                recognizer_port = fi.as_int64_or_throw(name);
-            } else if ("wait_time_ms" == name) {
-                wait_time_ms = fi.as_int64_or_throw(name);
-            } else if ("width" == name) {
-                width = fi.as_int64_or_throw(name);
-            } else if ("height" == name) {
-                height = fi.as_int64_or_throw(name);
-            } else if ("pos_x" == name) {
-                pos_x = fi.as_int64_or_throw(name);
-            } else if ("pos_y" == name) {
-                pos_y = fi.as_int64_or_throw(name);
-            } else if ("bit_rate" == name) {
-                bit_rate = fi.as_int64_or_throw(name);
-            } else if ("photo_name" == name) {
-                photo_name = fi.as_string_nonempty_or_throw(name);
-            } else if ("framerate" == name) {
-                framerate = fi.as_double(error_value);
-                if (error_value == framerate) {
-                    framerate = fi.as_int64_or_throw(name);
+        /* obj is a JSON object */
+        const char *key;
+        json_t *value;
+
+        json_object_foreach(root, key, value) {
+            auto key_str = std::string{key};
+            if ("id" == key_str) {
+                id = get_integer_or_throw(key_str, value);
+            } else if ("in" == key_str) {
+                in = get_string_or_throw(key_str, value);
+            } else if ("out" == key_str) {
+                out = get_string_or_throw(key_str, value);
+            } else if ("fmt" == key_str) {
+                fmt = get_string_or_throw(key_str, value);
+            } else if ("title" == key_str) {
+                title = get_string_or_throw(key_str, value);
+            } else if ("width" == key_str) {
+                width = get_integer_or_throw(key_str, value);
+            } else if ("height" == key_str) {
+                height = get_integer_or_throw(key_str, value);
+            } else if ("pos_x" == key_str) {
+                pos_x = get_integer_or_throw(key_str, value);
+            } else if ("pos_y" == key_str) {
+                pos_y = get_integer_or_throw(key_str, value);
+            } else if ("bit_rate" == key_str) {
+                bit_rate = get_integer_or_throw(key_str, value);
+            } else if ("photo_name" == key_str) {
+                photo_name = get_string_or_throw(key_str, value);
+            } else if ("framerate" == key_str) {
+                if (json_is_real(value)) {
+                    framerate = json_real_value(value);
+                } else {
+                    framerate = get_integer_or_throw(key_str, value);
                 }
-            } else {
-                throw wilton::support::exception(TRACEMSG("Unknown data field: [" + name + "]"));
+            } else if ("recognizer_ip" == key_str) {
+                recognizer_ip = get_string_or_throw(key_str, value);
+            } else if ("face_cascade_path" == key_str) {
+                face_cascade_path = get_string_or_throw(key_str, value);
+            } else if ("recognizer_port" == key_str) {
+                recognizer_port = get_integer_or_throw(key_str, value);
+            }  else {
+                std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
+                throw std::invalid_argument(err_msg);
             }
         }
 
-        // recognize not optional json data
-        if (in.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'in' not specified"));
-        if (out.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'out' not specified"));
-        if (fmt.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'fmt' not specified"));
-        if (title.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'title' not specified"));
-        if (photo_name.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'photo_name' not specified"));
-        if (recognizer_ip.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'recognizer_ip' not specified"));
-        if (face_cascade_path.empty())  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'face_cascade_path' not specified"));
-        if (-1 == recognizer_port)  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'recognizer_port' not specified"));
-        if (-1 == wait_time_ms)  throw wilton::support::exception(TRACEMSG(
-                "Required parameter 'wait_time_ms' not specified"));
-
+        // check not optional json data
+        if (in.empty())  throw std::invalid_argument(
+                "Required parameter 'in' not specified");
+        if (out.empty())  throw std::invalid_argument(
+                "Required parameter 'out' not specified");
+        if (fmt.empty())  throw std::invalid_argument(
+                "Required parameter 'fmt' not specified");
+        if (title.empty())  throw std::invalid_argument(
+                "Required parameter 'title' not specified");
+        if (photo_name.empty())  throw std::invalid_argument(
+                "Required parameter 'photo_name' not specified");
+        if (recognizer_ip.empty())  throw std::invalid_argument(
+                "Required parameter 'recognizer_ip' not specified");
+        if (face_cascade_path.empty())  throw std::invalid_argument(
+                "Required parameter 'face_cascade_path' not specified");
+        if (-1 == recognizer_port)  throw std::invalid_argument(
+                "Required parameter 'recognizer_port' not specified");
+        if (-1 == wait_time_ms)  throw std::invalid_argument(
+                "Required parameter 'wait_time_ms' not specified");
 
         video_settings set;
         set.input_file = in;
@@ -269,7 +296,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         set.face_cascade_path = face_cascade_path;
         set.wait_time_ms = wait_time_ms;
 
-        std::string output = sl::support::to_string(fun(id, set));
+        std::string output = std::to_string(fun(id, set));
+
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -293,7 +321,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     }
 }
 
-} // namespace
+} // namespace video_handler
 
 // this function is called on module load,
 // must return NULL on success
@@ -352,7 +380,6 @@ char* wilton_module_init() {
             reinterpret_cast<void*> (video_handler::av_start_video_display), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
-
     ///////////////////////
     // register 'av_stop_recognizer_video_display' function
     auto name_av_stop_recognizer_video_display = std::string("av_stop_recognizer_video_display");
@@ -397,6 +424,11 @@ char* wilton_module_init() {
     auto name_av_is_encoder_started = std::string("av_is_encoder_started");
     err = wiltoncall_register(name_av_is_encoder_started.c_str(), static_cast<int> (name_av_is_encoder_started.length()),
             reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper);
+    if (nullptr != err) return err;
+    // register 'av_is_display_started' function
+    auto name_av_is_display_started = std::string("av_is_display_started");
+    err = wiltoncall_register(name_av_is_display_started.c_str(), static_cast<int> (name_av_is_display_started.length()),
+            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function
