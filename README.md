@@ -2,20 +2,25 @@ C++ module wilton_video_handler
 ------------------
 
 `WILTON_HOME` environment variable must be set to the Wilton dist directory.<br>
-`WILTON_DIR` environment variable must be set to the Wilton source dir.<br>
 For windows build: <br>
 `FFMPEG_DEV_DIR` environment variable must be set to the FFMpeg dev directory, contained "/include" and "/lib" dirs.<br>
 `SDL_DEV_DIR` environment variable must be set to the SDL2 dev directory, contained "/include/SDL2" and "/lib/x64/" or "/lib/x86/" dirs<br>
-`STATICLIB_DIR` environment variable must be set to directory with staticlibs libraries<br>
-
 
 Install libraries for Ubuntu:
 ```
  sudo apt install libavcodec-dev libswscale-dev libswresample-dev libavformat-dev libavutil-dev libavdevice-dev libsdl2-dev 
 ```
 
+Install libraries for CentOs7:
+```
+ sudo yum install ffmpeg-devel-2.6.8-3.el7.nux.x86_64 SDL2-devel-2.0.3-9.el7.x86_64
+```
+
+Module is dependent of jansson library. This library(2.11 version) included as submodule.
+
 Build and run on Linux:
 ```bash
+    git submodule update --init
     mkdir build
     cd build
     cmake .. -DCMAKE_CXX_FLAGS=--std=c++11
@@ -26,6 +31,7 @@ Build and run on Linux:
 
 Build and run on Windows:
 ```bash
+    git submodule update --init
     mkdir build
     cd build
     cmake .. -G "Visual Studio 1x 201x Win64" # example "Visual Studio 14 2015 Win64"
@@ -60,6 +66,7 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_is_started(**id**) | Returns 1 if record is started, 0 if not. Required handler's **id** |
 | av_is_decoder_started(**id**) | Returns 1 if decoder is started, 0 if not. Required handler's **id** |
 | av_is_encoder_started(**id**) | Returns 1 if encoder is started, 0 if not. Required handler's **id** |
+| av_is_display_started(**id**) | Returns 1 if display of frames is started, 0 if not. Required handler's **id** |
 
 
 Settings json: 
@@ -76,8 +83,8 @@ Settings json:
   "bit_rate" : 150000,        // optional. Default: device bit_rate
   "framerate" : 4.4,          // optional, should be setted as float value. Default: 25.0 
   // pixel pos of left top corner of created display
-  "pos_x" : 800,              // optional. Default: 100
-  "pos_y" : 300               // optional. Default: 100
+  "pos_x" : 800,              // optional. Position X of created window. Default: 100
+  "pos_y" : 300               // optional. Position Y of created window. Default: 100
 }
 ```
 
@@ -106,9 +113,11 @@ Changes for windows:
 A more detailed example in **index.js**
 
 
-###errors handling
+### errors handling
 
-If video handler with **id** doesn't exists function return errror message in json string:
+Errors returned as stringify JSON with error property.
+
+For example, if video handler with **id** doesn't exists function return errror message in json string:
 
 ```JavaScript
 { 

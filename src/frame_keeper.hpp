@@ -58,7 +58,9 @@ public:
   
   void assig_new_frames(AVFrame *new_frame, AVFrame* new_origin_frame);
   AVFrame* get_frame();
+  AVFrame* get_frame(int& id);
   AVFrame* get_origin_frame();
+  AVFrame* get_current_frame();
 };
 
 #endif  /* FRAME_KEEPER_HPP */

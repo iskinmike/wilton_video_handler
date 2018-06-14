@@ -51,15 +51,18 @@ class display
     std::string wait_result();
     void send_result(std::string result);
     std::atomic_bool stop_flag;
+    bool initialized;
 public:
     display(const std::string& title)
-        : renderer(NULL), screen(NULL), texture(NULL), title(title), stop_flag(false), init_result("can't init"){}
+        : renderer(NULL), screen(NULL), texture(NULL), title(title),
+          stop_flag(false), init_result("can't init"), initialized(false) {}
     ~display();
 
     std::string init(int pos_x, int pos_y, int width, int height);
     std::string start_display(int pos_x, int pos_y, int width, int height);
     void stop_display();
 
+    bool is_initialized() const;
     void display_frame(AVFrame* frame);
 };
 

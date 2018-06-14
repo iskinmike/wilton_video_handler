@@ -32,6 +32,11 @@ if(EXISTS "/etc/redhat-release")
      set ( PLATFORM_INCLUDE "/usr/include/ffmpeg")
 endif(EXISTS "/etc/redhat-release")
 
+set(JANSSON_BUILD_DOCS OFF)
+include_directories(jansson/include)
+link_directories(jansson/lib)
+add_subdirectory(jansson)
+
 set(SOURCES
     src/frame_keeper.cpp
     src/decoder.cpp
@@ -50,6 +55,7 @@ set(LIBS
   avutil
   SDL2
   pthread
+  jansson
 )
 
 if ( WIN32 )
@@ -61,27 +67,22 @@ if ( WIN32 )
     "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
     "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
     "$ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE}/SDL2.lib"
-    "$ENV{STATICLIB_DIR}/staticlib_json.lib"
-    "$ENV{STATICLIB_DIR}/staticlib_utils.lib"
+    "${CMAKE_CURRENT_BINARY_DIR}/jansson/lib/Release/jansson.lib"
   )
   # needed for some MSVC installations
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
 endif ( )
 
-set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
-	"$ENV{FFMPEG_DEV_DIR}/include"
-	"$ENV{SDL_DEV_DIR}/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_config/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_io/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_json/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_support/include"
-  "$ENV{WILTON_DIR}/deps/staticlib_utils/include")
+    "${CMAKE_CURRENT_BINARY_DIR}/jansson/include"
+    "$ENV{FFMPEG_DEV_DIR}/include"
+    "$ENV{SDL_DEV_DIR}/include"
+  )
 
 message(STATUS ${LIBS})
-message(STATUS ${WILTON_HEADERS_DIRS})
+message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
 message(STATUS ${STATICLIBS_HEADERS_DIRS})
 
 if ( WIN32 )
@@ -94,7 +95,6 @@ add_library ( ${PROJECT_NAME} SHARED
 
 target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
         $ENV{WILTON_HOME}/devel/include
-        ${WILTON_HEADERS_DIRS}
         ${PLATFORM_INCLUDE}
         ${STATICLIBS_HEADERS_DIRS})
 
@@ -108,7 +108,7 @@ if ( WIN32 )
 endif ( )
 
 target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
-  
+
 add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory dist
         COMMAND ${CMAKE_COMMAND} -E make_directory dist
@@ -129,3 +129,5 @@ add_custom_target ( dist ALL
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${PROJECT_NAME}
         COMMENT "Preparing application bundle, directory: [${CMAKE_CURRENT_BINARY_DIR}/dist] ..." )
+
+add_dependencies(dist jansson)
