@@ -2,16 +2,19 @@ C++ module wilton_video_handler
 ------------------
 
 `WILTON_HOME` environment variable must be set to the Wilton dist directory.<br>
-`WILTON_DIR` environment variable must be set to the Wilton source dir.<br>
 For windows build: <br>
 `FFMPEG_DEV_DIR` environment variable must be set to the FFMpeg dev directory, contained "/include" and "/lib" dirs.<br>
 `SDL_DEV_DIR` environment variable must be set to the SDL2 dev directory, contained "/include/SDL2" and "/lib/x64/" or "/lib/x86/" dirs<br>
-`STATICLIB_DIR` environment variable must be set to directory with staticlibs libraries<br>
 
 
 Install libraries for Ubuntu:
 ```
  sudo apt install libavcodec-dev libswscale-dev libswresample-dev libavformat-dev libavutil-dev libavdevice-dev libsdl2-dev 
+```
+
+Install libraries for CentOs7:
+```
+ sudo yum install ffmpeg-devel-2.6.8-3.el7.nux.x86_64 SDL2-devel-2.0.3-9.el7.x86_64
 ```
 
 Build and run on Linux:
