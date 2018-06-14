@@ -68,17 +68,17 @@ if ( WIN32 )
     "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
     "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
     "$ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE}/SDL2.lib"
-    "$ENV{STATICLIB_DIR}/staticlib_json.lib"
-    "$ENV{STATICLIB_DIR}/staticlib_utils.lib"
+    "${CMAKE_CURRENT_BINARY_DIR}/jansson/lib/Release/jansson.lib"
   )
   # needed for some MSVC installations
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
 endif ( )
 
 set(WILTON_HEADERS_DIRS "$ENV{WILTON_DIR}/core/include")
 set(STATICLIBS_HEADERS_DIRS
+    "${CMAKE_CURRENT_BINARY_DIR}/jansson/include"
     "$ENV{FFMPEG_DEV_DIR}/include"
     "$ENV{SDL_DEV_DIR}/include"
     "$ENV{WILTON_DIR}/deps/staticlib_config/include"
@@ -86,6 +86,7 @@ set(STATICLIBS_HEADERS_DIRS
   )
 
 message(STATUS ${LIBS})
+message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
 message(STATUS ${WILTON_HEADERS_DIRS})
 message(STATUS ${STATICLIBS_HEADERS_DIRS})
 
@@ -113,7 +114,7 @@ if ( WIN32 )
 endif ( )
 
 target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
-  
+
 add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory dist
         COMMAND ${CMAKE_COMMAND} -E make_directory dist
@@ -134,3 +135,5 @@ add_custom_target ( dist ALL
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${PROJECT_NAME}
         COMMENT "Preparing application bundle, directory: [${CMAKE_CURRENT_BINARY_DIR}/dist] ..." )
+
+add_dependencies(dist jansson)
