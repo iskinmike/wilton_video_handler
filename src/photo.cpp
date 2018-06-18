@@ -122,13 +122,18 @@ std::string make_photo(std::string out_file)
 
 //    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
 
+    sws_freeContext(sws_ctx);
+
     av_frame_free(&frame);
     av_frame_free(&frame_rgb);
+    av_free_packet(&tmp_pack);
 
     avcodec_close(out_stream->codec);
     avformat_flush(out_format_ctx);
     // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_free_context(out_format_ctx);
+
+    delete[] buffer;
 
     return std::string{};
 }

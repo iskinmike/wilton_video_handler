@@ -26,7 +26,9 @@ void encoder::run_encoding()
 {
     frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        encode_frame(fk.get_frame());
+        AVFrame *tmp_frame = fk.get_frame();
+        encode_frame(tmp_frame);
+        av_frame_free(&tmp_frame);
     }
     stop_flag.exchange(false);
 }
@@ -168,7 +170,6 @@ int encoder::encode_frame(AVFrame* frame)
         write_frame(out_format_ctx, &out_stream->codec->time_base, out_stream, &tmp_pack);
     }
 
-    av_frame_free(&frame);
     av_free_packet(&tmp_pack);
     return got_pack;
 }

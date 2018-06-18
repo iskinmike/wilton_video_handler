@@ -272,6 +272,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             *data_out = nullptr;
         }
         *data_out_len = static_cast<int>(output.length());
+        json_decref(root);
         return nullptr;
 
     } catch (const std::exception& e) {
