@@ -6,7 +6,9 @@ void display::run_display()
 {
     frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        display_frame(fk.get_current_frame());
+        AVFrame *tmp_frame = fk.get_current_frame();
+        display_frame(tmp_frame);
+        av_frame_free(&tmp_frame);
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if( event.type == SDL_QUIT ) break;
@@ -62,12 +64,15 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
+        SDL_DestroyWindow(screen);
         return std::string("SDL: could not create renderer - exiting");
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
                             SDL_TEXTUREACCESS_STATIC, width, height);
     if (!texture) {
+        SDL_DestroyWindow(screen);
+        SDL_DestroyRenderer(renderer);
         return std::string("SDL: could not create texture - exiting");
     }
 
@@ -79,7 +84,7 @@ std::string display::start_display(int pos_x, int pos_y, int width, int height)
 {
     display_thread = std::thread([this, pos_x, pos_y, width, height] {
         send_result(init(pos_x, pos_y, width, height));
-        return this->run_display();
+        this->run_display();
     });
     return wait_result();
 }
@@ -91,6 +96,8 @@ void display::stop_display()
     if (initialized) {
         SDL_DestroyWindow(screen);
         SDL_DestroyRenderer(renderer);
+        SDL_DestroyTexture(texture);
+        SDL_Quit();
     }
 }
 
@@ -102,7 +109,7 @@ void display::display_frame(AVFrame *frame)
 {
     if (nullptr == frame) {
         return;
-    }   
+    }
 
     SDL_UpdateYUVTexture(
         texture,
@@ -117,5 +124,4 @@ void display::display_frame(AVFrame *frame)
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    av_frame_free(&frame);
 }
