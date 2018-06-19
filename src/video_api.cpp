@@ -53,8 +53,9 @@ std::string video_api::start_video_display()
 {
     auto result = std::string{};
     if (decoder_start_flag) {
-        result = api_display->start_display(settings.pos_x, settings.pos_y,
-                                            api_decoder->get_width(), api_decoder->get_height());
+        int width = (-1 != settings.display_width) ? settings.display_width : api_decoder->get_width();
+        int height = (-1 != settings.display_height) ? settings.display_height : api_decoder->get_height();
+        result = api_display->start_display(settings.pos_x, settings.pos_y, width, height);
         if (result.empty()) display_start_flag = true;
     }
     return result;

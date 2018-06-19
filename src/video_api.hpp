@@ -30,6 +30,8 @@ struct video_settings{
     int width, height;
     int bit_rate;
     double framerate;
+
+    int display_width, display_height;
 };
 
 class video_api

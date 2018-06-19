@@ -54,22 +54,7 @@ std::string get_string_or_throw(const std::string& key, json_t* value) {
 
 }
 // handler functions
-int av_init_handler(int id, const std::string& in, const std::string& out,
-                const std::string& fmt, const std::string& title, const std::string& photo_name, const int& width,
-                const int& height, const int& pos_x, const int& pos_y, const int& bit_rate, double framerate){
-    video_settings set;
-    set.input_file = in;
-    set.output_file = out;
-    set.format = fmt;
-    set.title = title;
-    set.width = width;
-    set.height = height;
-    set.pos_x = pos_x;
-    set.pos_y = pos_y;
-    set.bit_rate = bit_rate;
-    set.photo_name = photo_name;
-    set.framerate = framerate;
-
+int av_init_handler(int id, video_settings set){
     if (vhandlers_keeper.count(id)){
         vhandlers_keeper.erase(id);
     }
@@ -184,9 +169,7 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
 
 char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
-        auto fun = reinterpret_cast<int(*)(int, const std::string&, const std::string&,
-                                           const std::string&, const std::string&, const std::string&,
-                                           const int&, const int&, const int&, const int&, const int&, double)> (ctx);
+        auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
 
         json_t *root;
         json_error_t error;
@@ -206,6 +189,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int pos_y = -1;
         int width = -1;
         int height = -1;
+        int display_width = -1;
+        int display_height = -1;
         int bit_rate = -1;
         const double error_value = -1.0;
         double framerate = error_value;
@@ -230,6 +215,10 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 width = get_integer_or_throw(key_str, value);
             } else if ("height" == key_str) {
                 height = get_integer_or_throw(key_str, value);
+            } else if ("display_width" == key_str) {
+                display_width = get_integer_or_throw(key_str, value);
+            } else if ("display_height" == key_str) {
+                display_height = get_integer_or_throw(key_str, value);
             } else if ("pos_x" == key_str) {
                 pos_x = get_integer_or_throw(key_str, value);
             } else if ("pos_y" == key_str) {
@@ -250,6 +239,21 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             }
         }
 
+        video_settings set;
+        set.input_file = in;
+        set.output_file = out;
+        set.format = fmt;
+        set.title = title;
+        set.width = width;
+        set.height = height;
+        set.display_width = display_width;
+        set.display_height = display_height;
+        set.pos_x = pos_x;
+        set.pos_y = pos_y;
+        set.bit_rate = bit_rate;
+        set.photo_name = photo_name;
+        set.framerate = framerate;
+
         // check not optional json data
         if (in.empty())  throw std::invalid_argument(
                 "Required parameter 'in' not specified");
@@ -262,8 +266,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         if (photo_name.empty())  throw std::invalid_argument(
                 "Required parameter 'photo_name' not specified");
 
-        std::string output = std::to_string(fun(id, in, out, fmt, title, photo_name,
-                width, height, pos_x, pos_y, bit_rate, framerate));
+        std::string output = std::to_string(fun(id, set));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
