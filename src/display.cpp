@@ -2,6 +2,8 @@
 #include "display.hpp"
 #include "frame_keeper.hpp"
 
+#include <iostream>
+
 void display::run_display()
 {
     frame_keeper& fk = frame_keeper::instance();
@@ -57,10 +59,13 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     }
 
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+
     SDL_SetWindowFullscreen(screen, SDL_TRUE);
     SDL_RaiseWindow(screen); // rise above other windows
     SDL_SetWindowFullscreen(screen, SDL_FALSE);
+    SDL_SetWindowMinimumSize(screen, width, height);
+    SDL_SetWindowSize(screen, width, height);
 
     if(!screen) {
         SDL_Quit();
@@ -132,13 +137,13 @@ void display::display_frame(AVFrame *frame)
 
     AVFrame *frame_rgb = av_frame_alloc();
     // Determine required buffer size and allocate buffer
-    int numBytes = avpicture_get_size(new_format, width,
-                    height);
+    int numBytes = avpicture_get_size(new_format, this->width,
+                    this->height);
     uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
 
     //setup buffer for new frame
     avpicture_fill((AVPicture *)frame_rgb, buffer, new_format,
-           width, height);
+           this->width, this->height);
 
     // setup frame sizes
     frame_rgb->width = width;
