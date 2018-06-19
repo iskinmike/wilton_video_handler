@@ -15,6 +15,10 @@ void display::run_display()
         }
     }
     stop_flag.exchange(false);
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(screen);
+    SDL_Quit();
 }
 
 std::string display::wait_result(){
@@ -48,23 +52,25 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     int screen_pos_x = (-1 != pos_x) ? pos_x : default_screen_pos ;
     int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
 
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+    if(SDL_Init(SDL_INIT_VIDEO)) {
       return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
     }
 
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_OPENGL);
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
     SDL_SetWindowFullscreen(screen, SDL_TRUE);
     SDL_RaiseWindow(screen); // rise above other windows
     SDL_SetWindowFullscreen(screen, SDL_FALSE);
 
     if(!screen) {
+        SDL_Quit();
         return std::string("SDL: could not set video mode - exiting");
     }
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
         SDL_DestroyWindow(screen);
+        SDL_Quit();
         return std::string("SDL: could not create renderer - exiting");
     }
 
@@ -73,6 +79,7 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     if (!texture) {
         SDL_DestroyWindow(screen);
         SDL_DestroyRenderer(renderer);
+        SDL_Quit();
         return std::string("SDL: could not create texture - exiting");
     }
 
@@ -93,12 +100,6 @@ void display::stop_display()
 {
     stop_flag.exchange(true);
     if (display_thread.joinable()) display_thread.join();
-    if (initialized) {
-        SDL_DestroyWindow(screen);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyTexture(texture);
-        SDL_Quit();
-    }
 }
 
 bool display::is_initialized() const {
