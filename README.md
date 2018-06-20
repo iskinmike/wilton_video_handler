@@ -72,19 +72,23 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 Settings json: 
 ```JavaScript
 {
-  "id" : 1,                   // You may setup id manually. optional. Default value 0;
+  "id" : 1,                   // You may setup id manually. Optional. Default value 0;
   "in" : "/dev/video0",       // Name of input device. required
   "out" : "out.mp4",          // Name of output file. required  
   "fmt" : "video4linux2",     // Name of input ffmpeg format. required
   "photo_name" : "photo.png", // Name of created photo. required
-  "title" : "CAM",            // Name of created display. required
-  "width" : 640,              // optional. Default: width of captured device image
-  "height" : 480,             // optional. Default: height of captured device image
-  "bit_rate" : 150000,        // optional. Default: device bit_rate
-  "framerate" : 4.4,          // optional, should be setted as float value. Default: 25.0 
+  "title" : "CAM",            // Name of created display. required           
+  "video_width" = 480;        // Width of video file. Optional. Default: width of captured device image
+  "video_height" = 320;       // Height of video file. Optional. Default: height of captured device image
+  "photo_width" = 128;        // Width of photo file. Optional. Default: width of captured device image
+  "photo_height" = 128;       // Height of photo file. Optional. Default: height of captured device image
+  "display_width" = 320;      // Width of display file. Optional. Default: width of captured device image
+  "display_height" = 400;     // Height of display file. Optional. Default: height of captured device image
+  "bit_rate" : 150000,        // Optional. Default: device bitrate
+  "framerate" : 4.4,          // Optional, should be setted as float value. Default: 25.0 
   // pixel pos of left top corner of created display
-  "pos_x" : 800,              // optional. Position X of created window. Default: 100
-  "pos_y" : 300               // optional. Position Y of created window. Default: 100
+  "pos_x" : 300,              // Optional. Position X of created window. Default: 100
+  "pos_y" : 300               // Optional. Position Y of created window. Default: 100
 }
 ```
 

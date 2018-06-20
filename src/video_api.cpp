@@ -26,7 +26,7 @@ video_api::video_api(video_settings set) : start_flag(false),
 {
     settings = set;
     api_decoder = std::shared_ptr<decoder> (new decoder(set.input_file, set.format,
-            set.width, set.height, set.bit_rate));
+            set.video_width, set.video_height, set.bit_rate));
     api_encoder = std::shared_ptr<encoder> (new encoder(set.output_file));
     api_display = std::shared_ptr<display> (new display(set.title));
 }
@@ -129,5 +129,5 @@ void video_api::stop_video_display()
 
 std::string video_api::make_photo()
 {
-    return photo::make_photo(settings.photo_name);
+    return photo::make_photo(settings.photo_name, settings.photo_width, settings.photo_height);
 }

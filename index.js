@@ -41,11 +41,15 @@ define([
             // settings["fmt"] = "dshow";           // windows
             settings["out"] = "out.mp4";
             settings["title"] = "CAM";
-            settings["width"] = 640;
-            settings["height"] = 480;
-            settings["pos_x"] = 800;
+            settings["video_width"] = 480;
+            settings["video_height"] = 360;
+            settings["photo_width"] = 240;
+            settings["photo_height"] = 180;
+            settings["display_width"] = 320;
+            settings["display_height"] = 240;
+            settings["pos_x"] = 300;
             settings["pos_y"] = 300;
-            settings["bit_rate"] = 40000;
+            settings["bit_rate"] = 100000;
             settings["photo_name"] = "photo.png";
             settings["framerate"] = parseFloat("4.4");
 

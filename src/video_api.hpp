@@ -27,11 +27,12 @@
 struct video_settings{
     std::string input_file, output_file, format, photo_name, title;
     int pos_x, pos_y;
-    int width, height;
     int bit_rate;
     double framerate;
 
     int display_width, display_height;
+    int video_width, video_height;
+    int photo_width, photo_height;
 };
 
 class video_api
