@@ -253,7 +253,9 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 face_cascade_path = get_string_or_throw(key_str, value);
             } else if ("recognizer_port" == key_str) {
                 recognizer_port = get_integer_or_throw(key_str, value);
-            }  else {
+            } else if ("wait_time_ms" == key_str) {
+                wait_time_ms = get_integer_or_throw(key_str, value);
+            } else {
                 std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
                 throw std::invalid_argument(err_msg);
             }

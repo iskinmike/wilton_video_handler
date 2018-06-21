@@ -53,7 +53,7 @@ define([
             settings["framerate"] = parseFloat("10");
             settings["recognizer_ip"] = "127.0.0.1";
             settings["recognizer_port"] = 7777;
-            settings["wait_time_ms"] = 250;
+            settings["wait_time_ms"] = 10;
             settings["face_cascade_path"] = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml";
 
             var resp = wiltoncall("av_inti_handler", settings);
@@ -80,14 +80,14 @@ define([
             
             wiltoncall("av_start_recognizer_video_display", resp);
             print("=== av_start_recognizer_video_display");
-            for (var i = 0; i < 10; ++i) {
-                logger.info("Server is prepare to close ...");
+            for (var i = 0; i < 60; ++i) {
+                // logger.info("Server is prepare to close ...");
                 thread.sleepMillis(1000);
                 var read_conf = {};
                 read_conf["socketHandle"] = JSON.parse(socket_handler).socketHandle;
                 read_conf["timeoutMillis"] = 1000;
                 var data = wiltoncall("net_socket_read", read_conf);
-                print("=== data: [" + data +"]")
+                // print("=== data: [" + data +"]")
             }
             wiltoncall("av_stop_recognizer_video_display", resp);
             print("=== av_stop_recognizer_video_display");

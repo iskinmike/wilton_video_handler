@@ -93,8 +93,10 @@ alert_server::~alert_server(){
 }
 
 recognizer::recognizer(std::string ip, int port, std::string face_cascade_path, int64_t wait_time_ms) :
-    frame(nullptr), stop_flag(false), alert_service(port, ip), recognizing_in_progress(false), face_cascade_path(face_cascade_path), wait_time_ms(wait_time_ms)
+    frame(nullptr), stop_flag(false), alert_service(port, ip), recognizing_in_progress(false),
+    face_cascade_path(face_cascade_path), wait_time_ms(wait_time_ms), prev_finded_faces(0)
 {
+//    fs.open();
     alert_service.listen();
 }
 recognizer::~recognizer(){
@@ -120,18 +122,60 @@ void recognizer::convert_frame_to_mat(){
 }
 int recognizer::detect_faces(){
     std::vector<cv::Rect> faces;
+    std::vector<cv::Rect> haar_faces;
     cv::Mat frame_gray;
 
     cv::cvtColor( frame_mat, frame_gray, CV_BGR2GRAY );
     cv::equalizeHist( frame_gray, frame_gray );
 
-    //-- Detect faces
-    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, cv::Size(30, 30) );
+    // детектим через Haar
+    face_cascade.detectMultiScale( frame_gray, faces, 1.2, 3, 0|CV_HAAR_SCALE_IMAGE, cv::Size(30, 30));
 
-    for( size_t i = 0; i < faces.size(); i++ )
+
+//    prev_finded_faces;
+    haar_faces = faces;
+    // Если нашли хотя бы одно лицо, то делаем update по найденным
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    fs /*std::cout*/ << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    fs /*std::cout*/ << "finded faces templates: " << face_matcher.get_found_faces_count() << std::endl;
+    fs /*std::cout*/ << "finded faces haar: " << faces.size() << " | " << prev_finded_faces << std::endl;
+    if (faces.size()) {
+        face_matcher.update_templates(faces, frame_mat);
+//        detector.update_template(frame_mat, faces[0]);
+    }
+    if (prev_finded_faces == faces.size()) {
+        face_matcher.remove_unmatched_templates(faces);
+    }
+    if ((face_matcher.get_found_faces_count() != prev_finded_faces) && face_matcher.get_found_faces_count()) {
+        face_matcher.remove_intersected_templates();
+    }
+
+    // Теперь, если количество лиц не совпадает с количеством ранее найденных  
+    if (prev_finded_faces != faces.size()) {
+        face_matcher.search_faces(faces, frame_mat);
+    }
+
+    // Запомним все найденные лица
+    prev_finded_faces = faces.size();
+    fs /*std::cout*/ << "------------------------------------------------------------------" << std::endl;
+    std::cout << "------------------------------------------------------------------" << std::endl;
+
+    for (auto& el: faces) {
+        cv::rectangle(frame_mat,
+                      cv::Rect(
+                          el.x,
+                          el.y,
+                          el.width,
+                          el.height),
+                      cv::Scalar( 0, 0, 255 ),
+                      2,5,0);
+    }
+
+
+    for( size_t i = 0; i < haar_faces.size(); i++ )
     {
-        cv::Point center( faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5 );
-        cv::ellipse( frame_mat, center, cv::Size( faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
+        cv::Point center( haar_faces[i].x + haar_faces[i].width*0.5, haar_faces[i].y + haar_faces[i].height*0.5 );
+        cv::ellipse( frame_mat, center, cv::Size( haar_faces[i].width*0.5, haar_faces[i].height*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
     }
 
     return faces.size();
@@ -149,21 +193,22 @@ void recognizer::display_mat(){
     recognizing_in_progress = true;
 
     frame_keeper& fk = frame_keeper::instance();
-//    cv::startWindowThread();
-//    std::string window_name{"MyVideo"};
-//    cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE);
+    cv::startWindowThread();
+    std::string window_name{"MyVideo"};
+    cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE);
+    cv::moveWindow(window_name, 1000, 200);
     while (!stop_flag) {
         frame = fk.get_frame();
         if (nullptr != frame) {
             convert_frame_to_mat();
             recognize_faces();
-//            cv::imshow(window_name, frame_mat);
+            cv::imshow(window_name, frame_mat);
         } else {
             alert_service.send_error_message("Get NULL 'frame' from video device. Run decoder to obtain frames.");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_time_ms));
     }
-//    cv::destroyWindow(window_name);
+    cv::destroyWindow(window_name);
     stop_flag.exchange(false);
 }
 
