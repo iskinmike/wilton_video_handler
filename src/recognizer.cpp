@@ -143,15 +143,16 @@ int recognizer::detect_faces(){
         face_matcher.update_templates(faces, frame_mat);
 //        detector.update_template(frame_mat, faces[0]);
     }
-    if (prev_finded_faces == faces.size()) {
-        face_matcher.remove_unmatched_templates(faces);
-    }
-    if ((face_matcher.get_found_faces_count() != prev_finded_faces) && face_matcher.get_found_faces_count()) {
+//    if (prev_finded_faces == faces.size()) {
+//        face_matcher.remove_unmatched_templates(faces);
+//    }
+    if (/*(face_matcher.get_found_faces_count() != prev_finded_faces) && */face_matcher.get_found_faces_count()) {
         face_matcher.remove_intersected_templates();
     }
 
-    // Теперь, если количество лиц не совпадает с количеством ранее найденных  
-    if (prev_finded_faces != faces.size()) {
+    // Теперь, если количество лиц не совпадает с количеством ранее найденных
+    // Вообще надо бы не по предыдущим найденным сравнивать а по количеству шаблонов.
+    if (face_matcher.get_found_faces_count() != faces.size()) {
         face_matcher.search_faces(faces, frame_mat);
     }
 

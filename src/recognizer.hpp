@@ -50,8 +50,14 @@ using send_handler = std::function<void(const asio::error_code&, std::size_t)>;
 
 namespace {
     std::fstream fs ("data.txt", std::fstream::out);
-    const double intersection_percent_threshold = 0.51;
-    const double templates_match_threshold = 0.18;
+    const double intersection_percent_threshold = 0.60;
+    const double templates_match_threshold = 0.15;
+
+    const double min_threshold = 0.15;
+    const double min_distance_shift = 1000;
+
+    const double min_same_template_threshold = 0.15;
+
     std::string data;
     std::ostringstream ostream;
     uint64_t id = 0;
@@ -98,6 +104,7 @@ class template_detector
 public:
     // template matching
     cv::Mat face_template;
+    cv::Mat compare_template;
     cv::Mat matching_result;
 
     cv::Rect face_area;
@@ -148,6 +155,8 @@ public:
         tracked_face_area = double_size(face, cv::Rect(0,0,frame.cols, frame.rows));
 //        tracked_face_area = double_size(tracked_face_area, cv::Rect(0,0,frame.cols, frame.rows));
 
+        compare_template = frame(face).clone();
+
         face.x += face.width / 4;
         face.y += face.height / 4;
         face.width /= 2;
@@ -158,12 +167,6 @@ public:
         is_template_setted = true;
 
         set_prev_point(cv::Point(face.x + face.width/2, face.y + face.height/2));
-
-        // Calculate roi
-//        tracked_face_area = doubleRectSize(m_trackedFace, cv::Rect(0, 0, frame.cols, frame.rows));
-
-        // Update face position
-//        m_facePosition = centerOfRect(m_trackedFace);
     }
 
     cv::Rect double_size(cv::Rect view, cv::Rect border_rect) {
@@ -198,23 +201,48 @@ public:
 
 //        cv::normalize(matching_result, matching_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
 //        cv::minMaxLoc(matching_result, &min, &max, &minLoc, &maxLoc);
-
+        fs /*std::cout*/ << "template id [" << this->uniq_id << "]: " << std::endl;
         fs /*std::cout*/ << "Mins: " << minLoc.x << " | " << minLoc.y << " | " << min << std::endl;
         minLoc.x += tracked_face_area.x;
         minLoc.y += tracked_face_area.y;
 
+        cv::Rect old_face_area = face_area;
         face_area = cv::Rect(minLoc.x, minLoc.y, face_template.cols, face_template.rows);
         face_area = double_size(face_area, cv::Rect(0,0,frame.cols, frame.rows));
 
-        const double min_threshold = 0.18;
-        const double min_distance_shift = 300;
+
         double distance = calc_vector(minLoc);
         fs /*std::cout*/ << "Mins shifted: " << minLoc.x << " | " << minLoc.y << " | " << min << " | " << distance << std::endl;
-        if (min_threshold > min && (min_distance_shift > distance)) {
+
+        if (min_threshold > min/* && (min_distance_shift > distance)*/) {
             is_face_detected = true;
             percent = min;
         } else {
             is_face_detected = false;
+        }
+
+        if (distance > 80) {
+            // Нужно посмотреть какие тут будут запросы.
+            // Ну например  уменьшить область и посмотреть будет ли в ней тоже подходящий шаблон.
+            cv::Rect tmp_area = tracked_face_area;
+            tmp_area.width = face_template.cols;
+            tmp_area.height = face_template.rows;
+
+            tmp_area.x += (tracked_face_area.width - tmp_area.width)/2;
+            tmp_area.y += (tracked_face_area.height - tmp_area.height)/2;
+
+            cv::matchTemplate(frame(tmp_area), face_template, matching_result, CV_TM_SQDIFF_NORMED);
+            cv::minMaxLoc(matching_result, &min, &max, &minLoc, &maxLoc);
+            minLoc.x += tmp_area.x;
+            minLoc.y += tmp_area.y;
+            distance = calc_vector(minLoc);
+            fs /*std::cout*/ << "---- test Mins shifted: " << minLoc.x << " | " << minLoc.y << " | " << min << " | " << distance << std::endl;
+
+            cv::Rect intersection = old_face_area | face_area;
+            double intersection_s = intersection.width*intersection.height;
+            double old_face_s = old_face_area.width*old_face_area.height;
+            // Можно найти пересчение для face_area новой и старой
+            fs /*std::cout*/ << "---- test intersection: " << intersection_s << " | " << old_face_s << " | " << old_face_s/intersection_s << " | " << std::endl;
         }
 
         return face_area;
@@ -284,12 +312,29 @@ public:
         if (intersection_percent_threshold < intersection_percent){
             return true;
         }
-        // }
 
-//        if ((x_left <= x && y_left <= y) &&
-//            (x_right >= x && y_right >= y)) return true;
         return false;
     }
+
+
+     bool has_same_area_by_template(const cv::Mat& frame, const cv::Rect& area) {
+
+         cv::Mat tmp_frame = frame(area).clone();
+
+         cv::Mat result;
+
+         cv::matchTemplate(tmp_frame, compare_template, result, CV_TM_SQDIFF_NORMED);
+         double min, max;
+         cv::Point minLoc, maxLoc;
+         cv::minMaxLoc(result, &min, &max, &minLoc, &maxLoc);
+         fs /*std::cout*/ << "similar probability : " << min << std::endl;
+         if (min < min_same_template_threshold) {
+             return true;
+         }
+
+         return this->has_same_area(area);
+//         return false;
+     }
 };
 
 class matcher
@@ -304,27 +349,30 @@ public:
 
     void update_templates(std::vector<cv::Rect> areas, cv::Mat image) {
 //        std::set<cv::Rect*> new_areas;
-        fs /*std::cout*/ << " ======= update_templates" << std::endl;
+//        fs /*std::cout*/ << " ======= update_templates" << std::endl;
 
-        for (auto& area: areas) {
-            fs /*std::cout*/ << "update area: " << area.x << "|" << area.y << "|" << area.width << "|" << area.height << "|" << std::endl;
-        }
-        for (auto it = areas.begin(); it != areas.end();) {
-            fs /*std::cout*/ << "------ update current area: " << it->x << "|" << it->y << "|" << it->width << "|" << it->height << "|" << std::endl;
-            bool erased_flag = false;
-            for (auto detector: templates) {
-                if (detector->has_same_area(*it)) {
-                    detector->update_template(image, *it);
-                    erased_flag = true;
-                    break; // exit because iterators broken;
-                }
-            }
-            if (!erased_flag) {
-                ++it;
-            } else {
-                it = areas.erase(it);
-            }
-        }
+//        for (auto& area: areas) {
+//            fs /*std::cout*/ << "update area: " << area.x << "|" << area.y << "|" << area.width << "|" << area.height << "|" << std::endl;
+//        }
+//        for (auto it = areas.begin(); it != areas.end();) {
+//            fs /*std::cout*/ << "------ update current area: " << it->x << "|" << it->y << "|" << it->width << "|" << it->height << "|" << std::endl;
+//            bool erased_flag = false;
+//            for (auto detector: templates) {
+//                fs /*std::cout*/ << "template [" << detector->uniq_id << "]" << std::endl;
+//                if (detector->has_same_area_by_template(image, *it)) {
+////                if (detector->has_same_area(*it)) {
+//                    fs << "------ updated: " << std::endl;
+//                    detector->update_template(image, *it);
+//                    erased_flag = true;
+//                    break; // exit because iterators broken;
+//                }
+//            }
+//            if (erased_flag) {
+//                it = areas.erase(it);
+//            } else {
+//                ++it;
+//            }
+//        }
 
         fs /*std::cout*/ << "area size after: " << areas.size() << std::endl;
         for (auto& area: areas) {
@@ -354,7 +402,7 @@ public:
             // Тпереь в зависимости от того что нашли либо записываем лицо и итерируем дальше, либо удаляем детектор, при этом итерируя.
             if ((*detector)->is_face_detected) {
                 finded_faces.push_back(face);
-//                if ((*detector)->percent < 0.03) {
+//                if ((*detector)->percent < 0.05) {
                     (*detector)->update_template(image, face);
 //                }
             } else {
@@ -425,7 +473,9 @@ public:
                 bool second_above_threshold = (intersection_percent_threshold < second_intersect_percent);
 
                 fs  << "first second S: " <<  first_s << " | " << second_s << std::endl;
-                fs  << "**** other template: [" << second_it->get()->uniq_id << "] | | " << first_above_threshold << " | " << second_above_threshold << std::endl;
+                fs  << "**** other template: [" << second_it->get()->uniq_id << "] | | " <<
+                       first_above_threshold << " | " << second_above_threshold << " --- " <<
+                       first_intersect_percent << " | " << second_intersect_percent <<std::endl;
 
 //                if (first_above_threshold && second_above_threshold) {
 //                    // Удаляем тот у которого меньше площадь.
@@ -434,17 +484,11 @@ public:
 //                    } else {
 //                        templates_to_delete.insert(*second_it);
 //                    }
-//                } else if (first_above_threshold && !second_above_threshold) {
-//                    // Удаляем первый
-//                    templates_to_delete.insert(*first_it);
-//                } else if (!first_above_threshold && second_above_threshold) {
-//                    // Удаляем второй
-//                    templates_to_delete.insert(*second_it);
 //                }
 
                 // Сравним теперь шаблоны если никого удалять не стали
-                cv::Mat first_template = first_it->get()->face_template;
-                cv::Mat second_template = second_it->get()->face_template;
+                cv::Mat first_template = first_it->get()->compare_template;
+                cv::Mat second_template = second_it->get()->compare_template;
                 cv::Mat matching_result;
 
                 cv::matchTemplate(first_template, second_template, matching_result, CV_TM_SQDIFF_NORMED);
@@ -454,7 +498,7 @@ public:
 
                 fs << "templates probability: " << min << " | " << std::endl;
 
-                if (templates_match_threshold > min) {
+                if ((templates_match_threshold > min) || (first_above_threshold && second_above_threshold)) {
                     // Нужно удалить тот который раньше появился
 //                    if (first_s < second_s) {
 //                    if (new_templates.count(first_it->get()->uniq_id)) {
@@ -462,6 +506,14 @@ public:
                         templates_to_delete.insert(*second_it);
                     } else {
                         templates_to_delete.insert(*first_it);
+                    }
+                } else {
+                    if (first_above_threshold && !second_above_threshold) {
+                        // Удаляем первый
+                        templates_to_delete.insert(*first_it);
+                    } else if (!first_above_threshold && second_above_threshold) {
+                        // Удаляем второй
+                        templates_to_delete.insert(*second_it);
                     }
                 }
 
