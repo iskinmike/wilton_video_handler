@@ -195,17 +195,22 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
 
+        const int not_set = -1;
         int id = 0;
         auto in = std::string{};
         auto out = std::string{};
         auto fmt = std::string{};
         auto title = std::string{};
         auto photo_name = std::string{};
-        int pos_x = -1;
-        int pos_y = -1;
-        int width = -1;
-        int height = -1;
-        int bit_rate = -1;
+        int pos_x = not_set;
+        int pos_y = not_set;
+        int video_width = not_set;
+        int video_height = not_set;
+        int photo_width = not_set;
+        int photo_height = not_set;
+        int display_width = not_set;
+        int display_height = not_set;
+        int bit_rate = not_set;
         const double error_value = -1.0;
         double framerate = error_value;
         int recognizer_port = -1;
@@ -229,10 +234,18 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 fmt = get_string_or_throw(key_str, value);
             } else if ("title" == key_str) {
                 title = get_string_or_throw(key_str, value);
-            } else if ("width" == key_str) {
-                width = get_integer_or_throw(key_str, value);
-            } else if ("height" == key_str) {
-                height = get_integer_or_throw(key_str, value);
+            } else if ("video_width" == key_str) {
+                video_width = get_integer_or_throw(key_str, value);
+            } else if ("video_height" == key_str) {
+                video_height = get_integer_or_throw(key_str, value);
+            } else if ("display_width" == key_str) {
+                display_width = get_integer_or_throw(key_str, value);
+            } else if ("display_height" == key_str) {
+                display_height = get_integer_or_throw(key_str, value);
+            } else if ("photo_width" == key_str) {
+                photo_width = get_integer_or_throw(key_str, value);
+            } else if ("photo_height" == key_str) {
+                photo_height = get_integer_or_throw(key_str, value);
             } else if ("pos_x" == key_str) {
                 pos_x = get_integer_or_throw(key_str, value);
             } else if ("pos_y" == key_str) {
@@ -281,24 +294,28 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         if (-1 == wait_time_ms)  throw std::invalid_argument(
                 "Required parameter 'wait_time_ms' not specified");
 
-        video_settings set;
-        set.input_file = in;
-        set.output_file = out;
-        set.format = fmt;
-        set.title = title;
-        set.width = width;
-        set.height = height;
-        set.pos_x = pos_x;
-        set.pos_y = pos_y;
-        set.bit_rate = bit_rate;
-        set.photo_name = photo_name;
-        set.framerate = framerate;
-        set.recognizer_ip = recognizer_ip;
-        set.recognizer_port = recognizer_port;
-        set.face_cascade_path = face_cascade_path;
-        set.wait_time_ms = wait_time_ms;
+        video_settings settings;
+        settings.input_file = in;
+        settings.output_file = out;
+        settings.format = fmt;
+        settings.title = title;
+        settings.video_width = video_width;
+        settings.video_height = video_height;
+        settings.display_width = display_width;
+        settings.display_height = display_height;
+        settings.photo_width = photo_width;
+        settings.photo_height = photo_height;
+        settings.pos_x = pos_x;
+        settings.pos_y = pos_y;
+        settings.bit_rate = bit_rate;
+        settings.photo_name = photo_name;
+        settings.framerate = framerate;
+        settings.recognizer_ip = recognizer_ip;
+        settings.recognizer_port = recognizer_port;
+        settings.face_cascade_path = face_cascade_path;
+        settings.wait_time_ms = wait_time_ms;
 
-        std::string output = std::to_string(fun(id, set));
+        std::string output = std::to_string(fun(id, settings));
 
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
@@ -308,6 +325,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             *data_out = nullptr;
         }
         *data_out_len = static_cast<int>(output.length());
+        json_decref(root);
         return nullptr;
 
     } catch (const std::exception& e) {

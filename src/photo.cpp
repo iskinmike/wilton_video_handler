@@ -12,9 +12,10 @@ namespace {
         error += "\"}";
         return error;
     }
+    const int not_set = -1;
 }
 
-std::string make_photo(std::string out_file)
+std::string make_photo(std::string out_file, int photo_width, int photo_height)
 {
     AVFrame* frame_rgb;
     struct SwsContext* sws_ctx;
@@ -26,14 +27,18 @@ std::string make_photo(std::string out_file)
         return error_return("Can't make Photo. Get 'NULL'' frame.");
     }
 
+    int width = (not_set != photo_width) ? photo_width : frame->width;
+    int height = (not_set != photo_height) ? photo_height : frame->height;
+    AVPixelFormat new_format = AV_PIX_FMT_RGB24;
+
     sws_ctx = sws_getContext
     (
         frame->width,
         frame->height,
         static_cast<AVPixelFormat>(frame->format),
-        frame->width,
-        frame->height,
-        AV_PIX_FMT_RGB24,
+        width,
+        height,
+        new_format,
         SWS_BILINEAR,
         NULL,
         NULL,
@@ -42,18 +47,18 @@ std::string make_photo(std::string out_file)
 
     frame_rgb = av_frame_alloc();
     // Determine required buffer size and allocate buffer
-    int numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, frame->width,
-                    frame->height);
+    int numBytes = avpicture_get_size(new_format, width,
+                    height);
     uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
 
     //setup buffer for new frame
-    avpicture_fill((AVPicture *)frame_rgb, buffer, AV_PIX_FMT_RGB24,
-           frame->width, frame->height);
+    avpicture_fill((AVPicture *)frame_rgb, buffer, new_format,
+           width, height);
 
     // setup frame sizes
-    frame_rgb->width = frame->width;
-    frame_rgb->height = frame->height;
-    frame_rgb->format = AV_PIX_FMT_RGB24;
+    frame_rgb->width = width;
+    frame_rgb->height = height;
+    frame_rgb->format = new_format;
     frame_rgb->pts = 0;
 
     // rescale frame to frameRGB
@@ -82,7 +87,7 @@ std::string make_photo(std::string out_file)
     if (!out_stream) return error_return("Could not allocate stream for photo");
 
     // settings
-    out_stream->codec->pix_fmt = AV_PIX_FMT_RGB24;
+    out_stream->codec->pix_fmt = new_format;
     out_stream->codec->codec_id = encode_codec->id;
     out_stream->codec->gop_size = 1;/* emit one intra frame every twelve frames at most */
     out_stream->codec->width = frame_rgb->width;
@@ -120,15 +125,18 @@ std::string make_photo(std::string out_file)
     av_write_trailer(out_format_ctx);
     avio_closep(&(out_format_ctx->pb));
 
-//    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+    sws_freeContext(sws_ctx);
 
     av_frame_free(&frame);
     av_frame_free(&frame_rgb);
+    av_free_packet(&tmp_pack);
 
     avcodec_close(out_stream->codec);
     avformat_flush(out_format_ctx);
     // automatically set pOutFormatCtx to NULL and frees all its allocated data
     avformat_free_context(out_format_ctx);
+
+    delete[] buffer;
 
     return std::string{};
 }

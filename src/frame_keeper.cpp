@@ -3,6 +3,7 @@
 
 frame_keeper::~frame_keeper(){
     av_frame_free(&frame);
+    av_frame_free(&origin_frame);
 }
 
 void frame_keeper::wait_new_frame()

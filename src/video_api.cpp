@@ -31,7 +31,7 @@ video_api::video_api(video_settings set) : start_flag(false),
 {
     settings = set;
     api_decoder = std::shared_ptr<decoder> (new decoder(set.input_file, set.format,
-            set.width, set.height, set.bit_rate));
+            set.video_width, set.video_height, set.bit_rate));
     api_encoder = std::shared_ptr<encoder> (new encoder(set.output_file));
     api_display = std::shared_ptr<display> (new display(set.title));
     api_recognizer = std::shared_ptr<recognizer> (new recognizer(set.recognizer_ip, set.recognizer_port, set.face_cascade_path, set.wait_time_ms));
@@ -59,8 +59,9 @@ std::string video_api::start_video_display()
 {
     auto result = std::string{};
     if (decoder_start_flag) {
-        result = api_display->start_display(settings.pos_x, settings.pos_y,
-                                            api_decoder->get_width(), api_decoder->get_height());
+        int width = (-1 != settings.display_width) ? settings.display_width : api_decoder->get_width();
+        int height = (-1 != settings.display_height) ? settings.display_height : api_decoder->get_height();
+        result = api_display->start_display(settings.pos_x, settings.pos_y, width, height);
         if (result.empty()) display_start_flag = true;
     }
     return result;
@@ -144,5 +145,5 @@ void video_api::stop_video_display()
 
 std::string video_api::make_photo()
 {
-    return photo::make_photo(settings.photo_name);
+    return photo::make_photo(settings.photo_name, settings.photo_width, settings.photo_height);
 }

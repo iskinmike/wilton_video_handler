@@ -27,6 +27,6 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <string>
 
 namespace photo{
-std::string make_photo(std::string out_file);
+std::string make_photo(std::string out_file, int photo_width, int photo_height);
 }
 #endif  /* MAKE_PHOTO_HPP */
