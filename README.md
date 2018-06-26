@@ -67,6 +67,9 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_is_decoder_started(**id**) | Returns 1 if decoder is started, 0 if not. Required handler's **id** |
 | av_is_encoder_started(**id**) | Returns 1 if encoder is started, 0 if not. Required handler's **id** |
 | av_is_display_started(**id**) | Returns 1 if display of frames is started, 0 if not. Required handler's **id** |
+| av_start_recognizer(**id**) | Start recognizing algorithm. Required handler's **id** |
+| av_stop_recognizer(**id**) | Stop recognizing algorithm. Required handler's **id** |
+| av_is_recognizing_in_progress(**id**) | Returns 1 if recognizer is started, 0 if not. Required handler's **id** |
 
 
 Settings json: 
@@ -85,8 +88,17 @@ Settings json:
   // pixel pos of left top corner of created display
   "pos_x" : 800,              // optional. Position X of created window. Default: 100
   "pos_y" : 300               // optional. Position Y of created window. Default: 100
+// face detection
+  "recognizer_ip" : "127.0.0.1" // Required. Ip of server that will send alerts if detected faces not equal to 1. 
+  "recognizer_port" : 7777      // Required. Port of server.
+  "wait_time_ms" :  500         // Required. Time of delay between matching frames.
+                                // Required. Patth to cascade mesh. On linux this i standard path if tou setup opencv.
+  "face_cascade_path" : "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; 
 }
+
+
 ```
+
 
 Changes for windows:
 ```JavaScript
@@ -124,3 +136,71 @@ For example, if video handler with **id** doesn't exists function return errror 
   "error": "Wrong id [$id]"
 }
 ``` 
+
+
+### Face detection
+
+Module provides server for sending errors and face detection algorithm. Server starts when video handler created by call av_inti_handler().
+If it detects number of faces different from 1 it send alert message to client. In case of error send error message;
+
+alert message:
+```JavaScript
+{
+  "alert_number" : ##
+  "faces_count" : ##
+}
+```
+
+error message:
+```JavaScript
+{
+  "error" : "error text"
+}
+```
+
+usage example with wilton_net sockets:
+
+```JavaScript
+dyload({
+    name: "wilton_video_handler"
+});
+dyload({
+    name: "wilton_net"
+});
+
+...
+
+var settings = {};
+settings["id"] = 1;
+...
+settings["recognizer_ip"] = "127.0.0.1";
+settings["recognizer_port"] = 7777;
+settings["wait_time_ms"] = 1;
+settings["face_cascade_path"] = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; 
+
+...
+
+var socket = {}
+socket["ipAddress"] = "127.0.0.1";
+socket["tcpPort"] = 7777;
+socket["protocol"] = "TCP";
+socket["role"] = "client";
+socket["timeoutMillis"] = 2000;
+var socket_handler = wiltoncall("net_socket_open", socket);
+print("=== socket_handler: " + socket_handler);
+
+wiltoncall("av_start_recognizer", resp);
+print("=== av_start_recognizer");
+for (var i = 0; i < 20; ++i) {
+    thread.sleepMillis(1000);
+    var read_conf = {};
+    read_conf["socketHandle"] = JSON.parse(socket_handler).socketHandle;
+    read_conf["timeoutMillis"] = 1000;
+    var data = wiltoncall("net_socket_read", read_conf);
+    print("=== data: [" + data +"]")
+}
+wiltoncall("av_stop_recognizer", resp);
+print("=== av_stop_recognizer");
+
+wiltoncall("net_socket_close", JSON.parse(socket_handler));
+```

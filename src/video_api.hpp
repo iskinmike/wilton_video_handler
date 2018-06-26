@@ -76,8 +76,8 @@ public:
     bool get_recognizing_flag() const;
     bool get_display_flag() const;
 
-    std::string start_recognizer_display();
-    void stop_recognizing_display();
+    std::string start_recognizing();
+    void stop_recognizing();
 };
 
 #endif  /* VIDEO_API_HPP */

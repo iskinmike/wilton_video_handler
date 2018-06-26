@@ -67,11 +67,11 @@ std::string video_api::start_video_display()
 }
 
 // recognizer
-std::string video_api::start_recognizer_display()
+std::string video_api::start_recognizing()
 {
     return api_recognizer->run_recognizer_display();
 }
-void video_api::stop_recognizing_display()
+void video_api::stop_recognizing()
 {
     api_recognizer->stop_cheking_display();
 }

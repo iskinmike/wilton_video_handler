@@ -99,11 +99,11 @@ std::string av_stop_video_display(int id){
     return std::string{};
 }
 // display functions for recognizer test
-std::string av_start_recognizer_video_display(int id){
-    return vhandlers_keeper[id]->start_recognizer_display();
+std::string av_start_recognizer(int id){
+    return vhandlers_keeper[id]->start_recognizing();
 }
-std::string av_stop_recognizer_video_display(int id){
-    vhandlers_keeper[id]->stop_recognizing_display();
+std::string av_stop_recognizer(int id){
+    vhandlers_keeper[id]->stop_recognizing();
     return std::string{};
 }
 std::string av_is_recognizing_in_progress(int id){
@@ -383,15 +383,15 @@ char* wilton_module_init() {
     if (nullptr != err) return err;
 
     ///////////////////////
-    // register 'av_stop_recognizer_video_display' function
-    auto name_av_stop_recognizer_video_display = std::string("av_stop_recognizer_video_display");
-    err = wiltoncall_register(name_av_stop_recognizer_video_display.c_str(), static_cast<int> (name_av_stop_recognizer_video_display.length()),
-            reinterpret_cast<void*> (video_handler::av_stop_recognizer_video_display), video_handler::vahandler_wrapper);
+    // register 'av_stop_recognizer' function
+    auto name_av_stop_recognizer = std::string("av_stop_recognizer");
+    err = wiltoncall_register(name_av_stop_recognizer.c_str(), static_cast<int> (name_av_stop_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_recognizer), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
-    // register 'av_start_recognizer_video_display' function
-    auto name_av_start_recognizer_video_display = std::string("av_start_recognizer_video_display");
-    err = wiltoncall_register(name_av_start_recognizer_video_display.c_str(), static_cast<int> (name_av_start_recognizer_video_display.length()),
-            reinterpret_cast<void*> (video_handler::av_start_recognizer_video_display), video_handler::vahandler_wrapper);
+    // register 'av_start_recognizer' function
+    auto name_av_start_recognizer = std::string("av_start_recognizer");
+    err = wiltoncall_register(name_av_start_recognizer.c_str(), static_cast<int> (name_av_start_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_start_recognizer), video_handler::vahandler_wrapper);
     if (nullptr != err) return err;
     // register 'av_is_recognizing_in_progress' function
     auto name_av_is_recognizing_in_progress = std::string("av_is_recognizing_in_progress");
