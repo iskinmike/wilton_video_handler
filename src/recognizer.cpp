@@ -42,16 +42,7 @@ namespace {
         out_area = cv::Rect(maxLoc.x, maxLoc.y, match_template.cols, match_template.rows);
         return max;
     }
-
-    std::string generate_new_name(){
-       static int id = 0;
-       std::string name("face_");
-       name += std::to_string(id++);
-       name += ".bmp";
-       return name;
-    }
 }
-
 
 client_session::client_session(asio::io_service &io_service) : socket(io_service){}
 
@@ -289,11 +280,11 @@ void recognizer::stop_cheking_display() {
 }
 
 
-
-////////////////
+// matcher
 #ifdef TEST_OUT
 uint64_t template_detector::next_id(0);
 #endif
+
 
 void matcher::update_templates(std::vector<cv::Rect> &areas, const cv::Mat &image) {
 #ifdef TEST_OUT
@@ -302,7 +293,6 @@ void matcher::update_templates(std::vector<cv::Rect> &areas, const cv::Mat &imag
     for (auto& area: areas) {
         auto new_template = std::make_shared<template_detector>(template_detector(image, area));
         new_templates.insert(new_template);
-//            cv::imwrite(generate_new_name(), image(area));
     }
 }
 

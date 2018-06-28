@@ -45,7 +45,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <fstream>
 
 using send_handler = std::function<void(const asio::error_code&, std::size_t)>;
-#define TEST_OUT 1
+//#define TEST_OUT 1
 
 class client_session
 {
