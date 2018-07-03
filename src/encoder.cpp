@@ -80,7 +80,7 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     out_stream->codec->codec_id = encode_codec->id;
     out_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
     out_stream->codec->gop_size = 0;/* emit every frame as intra frame*/
-    out_stream->codec->time_base = av_inv_q(av_d2q(framerate, framerate_max_allowed_num_denum));
+    out_stream->codec->time_base = av_inv_q(av_d2q(this->framerate, framerate_max_allowed_num_denum));
     out_stream->codec->bit_rate = bit_rate;
     out_stream->codec->width = width;
     out_stream->codec->height = height;
