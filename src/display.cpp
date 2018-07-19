@@ -35,13 +35,19 @@ std::string display::wait_result(){
     return init_result;
 }
 
-void display::send_result(std::string result){
+void display::send_result(std::string result) {
     init_result = result;
     sync_point.flag.exchange(true);
     sync_point.cond.notify_all();
 }
 
-display::~display(){
+display::display(const std::string& title)
+    : renderer(NULL), screen(NULL), texture(NULL), title(title),
+      init_result("can't init"), initialized(false) 
+{            
+    stop_flag.exchange(false);
+}
+display::~display() {
     stop_display();
 }
 

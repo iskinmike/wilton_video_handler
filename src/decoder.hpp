@@ -62,12 +62,7 @@ class decoder
 
     std::atomic_bool stop_flag;
 public:
-  decoder(std::string in, std::string format, int widtth, int height, int bit_rate)
-      : filename(in), format(format),
-        format_ctx(NULL),file_iformat(NULL),codec_ctx(NULL),
-        codec(NULL), frame(NULL), frame_out(NULL),
-        sws_ctx(NULL), buffer(NULL), stop_flag(false), initialized(false),
-        width(widtth), height(height), bit_rate(bit_rate){}
+  decoder(std::string in, std::string format, int widtth, int height, int bit_rate);
   ~decoder();
 
   std::string init();
