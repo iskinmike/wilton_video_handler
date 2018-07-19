@@ -39,9 +39,9 @@ namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
-int64_t get_integer_or_throw(const std::string& key, json_t* value) {
+int get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
-        return json_integer_value(value);
+        return static_cast<int>(json_integer_value(value));
     }
     throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
 }
