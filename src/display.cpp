@@ -4,6 +4,73 @@
 
 #include <iostream>
 
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <unistd.h>
+#define MAX_PROPERTY_VALUE_LEN 4096
+#define p_verbose(...) if (options.verbose) { \
+    fprintf(stderr, __VA_ARGS__); \
+}
+//#include
+namespace {
+
+
+static char *get_property (Display *disp, Window win, /*{{{*/
+        Atom xa_prop_type, char *prop_name, unsigned long *size) {
+    Atom xa_prop_name;
+    Atom xa_ret_type;
+    int ret_format;
+    unsigned long ret_nitems;
+    unsigned long ret_bytes_after;
+    unsigned long tmp_size;
+    unsigned char *ret_prop;
+    char *ret;
+
+    xa_prop_name = XInternAtom(disp, prop_name, False);
+
+    /* MAX_PROPERTY_VALUE_LEN / 4 explanation (XGetWindowProperty manpage):
+     *
+     * long_length = Specifies the length in 32-bit multiples of the
+     *               data to be retrieved.
+     */
+    XGetWindowProperty(disp, win, xa_prop_name, 0, MAX_PROPERTY_VALUE_LEN / 4, False,
+            xa_prop_type, &xa_ret_type, &ret_format,
+            &ret_nitems, &ret_bytes_after, &ret_prop);
+
+    /* null terminate the result to make string handling easier */
+    tmp_size = (ret_format / (32 / sizeof(long))) * ret_nitems;
+    ret = (char*) malloc(tmp_size + 1);
+    memcpy(ret, ret_prop, tmp_size);
+    ret[tmp_size] = '\0';
+
+    if (size) {
+        *size = tmp_size;
+    }
+
+    XFree(ret_prop);
+    return ret;
+}/*}}}*/
+
+
+static Window *get_client_list (Display *disp, unsigned long *size) {
+    Window *client_list;
+
+    if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
+                    XA_WINDOW, "_NET_CLIENT_LIST", size)) == NULL) {
+        if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
+                        XA_CARDINAL, "_WIN_CLIENT_LIST", size)) == NULL) {
+            fputs("Cannot get client list properties. \n"
+                  "(_NET_CLIENT_LIST or _WIN_CLIENT_LIST)"
+                  "\n", stderr);
+            return NULL;
+        }
+    }
+
+    return client_list;
+}
+} // namespace
+
+
 void display::run_display()
 {
     frame_keeper& fk = frame_keeper::instance();
@@ -61,11 +128,29 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
-    SDL_SetWindowFullscreen(screen, SDL_TRUE);
-    SDL_RaiseWindow(screen); // rise above other windows
-    SDL_SetWindowFullscreen(screen, SDL_FALSE);
-    SDL_SetWindowMinimumSize(screen, width, height);
-    SDL_SetWindowSize(screen, width, height);
+
+    // оpen default display
+    Display* disp = nullptr;
+    disp = XOpenDisplay(NULL);
+
+    Window *client_list;
+    unsigned long client_list_size;
+
+    client_list = get_client_list(disp, &client_list_size);
+
+    for (unsigned long i = 0; i < client_list_size; i++) {
+        Window *win = &client_list[i];
+        if (nullptr == win) {
+            continue;
+        }
+        std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
+        std::cout << tmp << std::endl;
+        if (title.compare(tmp)) {
+            XRaiseWindow(disp, *win);
+            break;
+        }
+    }
+
 
     if(!screen) {
         SDL_Quit();
