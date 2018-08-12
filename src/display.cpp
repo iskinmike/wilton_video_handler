@@ -3,10 +3,12 @@
 #include "frame_keeper.hpp"
 
 #include <iostream>
-
+#ifdef WIN32
+#else
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <unistd.h>
+#endif
 #define MAX_PROPERTY_VALUE_LEN 4096
 #define p_verbose(...) if (options.verbose) { \
     fprintf(stderr, __VA_ARGS__); \
@@ -14,7 +16,8 @@
 //#include
 namespace {
 
-
+#ifdef WIN32
+#else
 static char *get_property (Display *disp, Window win, /*{{{*/
         Atom xa_prop_type, char *prop_name, unsigned long *size) {
     Atom xa_prop_name;
@@ -68,6 +71,7 @@ static Window *get_client_list (Display *disp, unsigned long *size) {
 
     return client_list;
 }
+#endif
 } // namespace
 
 
@@ -128,7 +132,8 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
-
+#ifdef WIN32
+#else
     // оpen default display
     Display* disp = nullptr;
     disp = XOpenDisplay(NULL);
@@ -150,7 +155,7 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
             break;
         }
     }
-
+#endif
 
     if(!screen) {
         SDL_Quit();
