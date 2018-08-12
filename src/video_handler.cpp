@@ -30,6 +30,7 @@
 //#include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
+#include "wilton/wilton_logging.h"
 #include "video_api.hpp"
 #include "frame_keeper.hpp"
 
@@ -52,54 +53,109 @@ std::string get_string_or_throw(const std::string& key, json_t* value) {
     throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains string value"});
 } // anonymous namespace
 
+const char* logging_config() {
+    return "{"
+    "  \"appenders\": [{"
+    "    \"appenderType\" : \"CONSOLE\","
+    "    \"thresholdLevel\" : \"DEBUG\""
+    "  }],"
+    "  \"loggers\": [{"
+    "    \"name\": \"video_handler\","
+    "    \"level\": \"DEBUG\""
+    "  }]"
+    "}";
 }
+const std::string logger_name("video_handler");
+const std::string log_level("DEBUG");
+void init_logging() {
+    const char* lconf = logging_config();
+    /*char* lerr = */wilton_logger_initialize(lconf, (int) strlen(lconf));
+//    check_err(lerr);
+}
+
+/**
+ * Send log message to wilton_logging
+ *
+ * @param name logger name
+ * @param level logging level
+ * @param message message
+ *
+ */
+inline void log(const std::string& name, const std::string& level, const std::string& message){
+    wilton_logger_log(level.c_str(), static_cast<int>(level.length()),
+            name.c_str(), static_cast<int>(name.length()),
+            message.c_str(), static_cast<int>(message.length()));
+}
+
+
+} // namespace
+
 // handler functions
 int av_init_handler(int id, video_settings set){
+    // log init handler
+    log(logger_name, log_level, "av_init_handler started");
     if (vhandlers_keeper.count(id)){
         vhandlers_keeper.erase(id);
     }
     vhandlers_keeper[id] =
             std::shared_ptr<video_api> (new video_api(set));
+    log(logger_name, log_level, "av_init_handler executed");
     return id;
 }
 std::string av_delete_handler(int id){
+    log(logger_name, log_level, "av_delete_handler started");
     vhandlers_keeper.erase(id);
+    log(logger_name, log_level, "av_delete_handler executed");
     return std::string{};
 }
 // video functions includes both encoder and decoder functions calls
 std::string av_start_video_record(int id){
+    log(logger_name, log_level, "start_video_record started");
     return vhandlers_keeper[id]->start_video_record();
+    log(logger_name, log_level, "start_video_record executed");
 }
 std::string av_stop_video_record(int id){
+    log(logger_name, log_level, "stop_video_record started");
     vhandlers_keeper[id]->stop_video_record();
+    log(logger_name, log_level, "stop_video_record executed");
     return std::string{};
 }
 // encoder functions. Wait for decoded frames and writes them to video file
 std::string av_start_encoding(int id){
+    log(logger_name, log_level, "start_encoding started");
     return vhandlers_keeper[id]->start_encoding();
 }
 std::string av_stop_encoding(int id){
+    log(logger_name, log_level, "stop_encoding started");
     vhandlers_keeper[id]->stop_encoding();
+    log(logger_name, log_level, "stop_encoding executed");
     return std::string{};
 }
 // decoder functions. Occupies a video device and start to decode frames to memory
 std::string av_start_decoding(int id){
+    log(logger_name, log_level, "start_decoding started");
     return vhandlers_keeper[id]->start_decoding();
 }
 std::string av_stop_decoding(int id){
+    log(logger_name, log_level, "av_stop_decoding started");
     vhandlers_keeper[id]->stop_decoding();
+    log(logger_name, log_level, "av_stop_decoding executed");
     return std::string{};
 }
 // display functions. Display decoded frames to user
 std::string av_start_video_display(int id){
+    log(logger_name, log_level, "start_video_display started");
     return vhandlers_keeper[id]->start_video_display();
 }
 std::string av_stop_video_display(int id){
+    log(logger_name, log_level, "stop_video_display started");
     vhandlers_keeper[id]->stop_video_display();
+    log(logger_name, log_level, "stop_video_display executed");
     return std::string{};
 }
 // takes photo from decoded frame
 std::string av_make_photo(int id){
+    log(logger_name, log_level, "av_stop_decoding started");
     return vhandlers_keeper[id]->make_photo();
 }
 // check functions. true if encoder/decoder started
@@ -313,6 +369,7 @@ char* wilton_module_init() {
 
     // Call to initialize frame_keeper in single thread
     frame_keeper::instance();
+    video_handler::init_logging();
 
     // register 'av_start_video_record' function
     auto name_av_start_video_record = std::string("av_start_video_record");
