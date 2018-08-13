@@ -4,6 +4,8 @@
 
 #include <iostream>
 #ifdef WIN32
+#include <windows.h>
+#include <cstdint>
 #else
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -17,6 +19,28 @@
 namespace {
 
 #ifdef WIN32
+struct param_info{
+    std::string title;
+    HWND window;
+};
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
+{
+	char szTextWin[255];DWORD dwPID = NULL; 
+	param_info* tmp_value = reinterpret_cast<param_info*>(lParam);
+	std::string title(tmp_value->title);
+	if(GetWindowText(hwnd,szTextWin,sizeof(szTextWin)))
+	{
+		CharToOem(szTextWin,szTextWin);
+		std::string window_title(szTextWin);
+		if (window_title == title) {
+			tmp_value->window = hwnd;
+			return false;
+		}
+	}
+	return TRUE;
+}
+
 #else
 static char *get_property (Display *disp, Window win, /*{{{*/
         Atom xa_prop_type, char *prop_name, unsigned long *size) {
@@ -138,31 +162,6 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
-#ifdef WIN32
-#else
-    // оpen default display
-    Display* disp = nullptr;
-    disp = XOpenDisplay(NULL);
-
-    Window *client_list;
-    unsigned long client_list_size;
-
-    client_list = get_client_list(disp, &client_list_size);
-
-    for (unsigned long i = 0; i < client_list_size; i++) {
-        Window *win = &client_list[i];
-        if (nullptr == win) {
-            continue;
-        }
-        std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
-        std::cout << tmp << std::endl;
-        if (title.compare(tmp)) {
-            XRaiseWindow(disp, *win);
-            break;
-        }
-    }
-#endif
-
     if(!screen) {
         SDL_Quit();
         return std::string("SDL: could not set video mode - exiting");
@@ -183,6 +182,46 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
         SDL_Quit();
         return std::string("SDL: could not create texture - exiting");
     }
+
+#ifdef WIN32
+
+	param_info info;
+	info.title = title;
+	info.window = 0;
+
+	LONG_PTR title_cb = reinterpret_cast<std::uintptr_t>(&info);
+    // EnumWindows calls EnumWindowsProc for each avaliable window handler until returns true and stops if false returned.
+    // EnumWindows returns false if EnumWindowsProc return false and true if looks throught all windows.
+	if (!EnumWindows(&EnumWindowsProc, title_cb)) {
+    	if (0 != info.window) {
+            // Set Window topmost, 0 - zeores are ignored by flags SWP_NOMOVE | SWP_NOSIZE
+            SetWindowPos( info.window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    	}
+    }
+
+#else
+	// оpen default display
+	Display* disp = nullptr;
+	disp = XOpenDisplay(NULL);
+
+	Window *client_list;
+	unsigned long client_list_size;
+
+	client_list = get_client_list(disp, &client_list_size);
+
+	for (unsigned long i = 0; i < client_list_size; i++) {
+		Window *win = &client_list[i];
+		if (nullptr == win) {
+			continue;
+		}
+		std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
+		std::cout << tmp << std::endl;
+		if (title.compare(tmp)) {
+			XRaiseWindow(disp, *win);
+			break;
+		}
+	}
+#endif
 
     initialized = true;
     return std::string{};
