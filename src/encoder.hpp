@@ -50,9 +50,7 @@ class encoder
     bool initialized;
 
 public:
-  encoder(std::string out)
-      : encode_codec(NULL), out_file(out),
-        stop_flag(false), initialized(false), out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1)  {}
+  encoder(std::string out);
   ~encoder();
 
   std::string init(int bit_rate, int width, int height, double framerate);

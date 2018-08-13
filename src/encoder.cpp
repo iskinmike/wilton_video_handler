@@ -38,6 +38,13 @@ bool encoder::is_initialized() const
     return initialized;
 }
 
+encoder::encoder(std::string out)
+    : encode_codec(NULL), out_file(out), initialized(false), 
+      out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1) 
+{
+    stop_flag.exchange(false);
+}
+
 encoder::~encoder()
 {
     stop_encoding();

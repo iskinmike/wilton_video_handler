@@ -51,6 +51,16 @@ bool decoder::is_initialized() const
     return initialized;
 }
 
+decoder::decoder(std::string in, std::string format, int widtth, int height, int bit_rate)
+    : filename(in), format(format),
+      format_ctx(NULL),file_iformat(NULL),codec_ctx(NULL),
+      codec(NULL), frame(NULL), frame_out(NULL),
+      sws_ctx(NULL), buffer(NULL), initialized(false),
+      width(widtth), height(height), bit_rate(bit_rate)
+{
+    stop_flag.exchange(false);
+}
+
 decoder::~decoder()
 {
     stop_decoding();

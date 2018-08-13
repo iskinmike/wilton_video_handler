@@ -55,9 +55,7 @@ class display
     std::atomic_bool stop_flag;
     bool initialized;
 public:
-    display(const std::string& title)
-        : renderer(NULL), screen(NULL), texture(NULL), title(title),
-          stop_flag(false), init_result("can't init"), initialized(false) {}
+    display(const std::string& title);
     ~display();
 
     std::string init(int pos_x, int pos_y, int width, int height);
