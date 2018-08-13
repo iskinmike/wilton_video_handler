@@ -10,11 +10,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <unistd.h>
-#endif
 #define MAX_PROPERTY_VALUE_LEN 4096
-#define p_verbose(...) if (options.verbose) { \
-    fprintf(stderr, __VA_ARGS__); \
-}
+#endif
 //#include
 namespace {
 
@@ -42,8 +39,8 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 }
 
 #else
-static char *get_property (Display *disp, Window win, /*{{{*/
-        Atom xa_prop_type, char *prop_name, unsigned long *size) {
+static char *get_property (Display *disp, Window win,
+        Atom xa_prop_type, const char *prop_name, unsigned long *size) {
     Atom xa_prop_name;
     Atom xa_ret_type;
     int ret_format;
@@ -76,7 +73,7 @@ static char *get_property (Display *disp, Window win, /*{{{*/
 
     XFree(ret_prop);
     return ret;
-}/*}}}*/
+}
 
 
 static Window *get_client_list (Display *disp, unsigned long *size) {
@@ -86,9 +83,6 @@ static Window *get_client_list (Display *disp, unsigned long *size) {
                     XA_WINDOW, "_NET_CLIENT_LIST", size)) == NULL) {
         if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
                         XA_CARDINAL, "_WIN_CLIENT_LIST", size)) == NULL) {
-            fputs("Cannot get client list properties. \n"
-                  "(_NET_CLIENT_LIST or _WIN_CLIENT_LIST)"
-                  "\n", stderr);
             return NULL;
         }
     }
@@ -184,7 +178,6 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     }
 
 #ifdef WIN32
-
 	param_info info;
 	info.title = title;
 	info.window = 0;
@@ -195,10 +188,9 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 	if (!EnumWindows(&EnumWindowsProc, title_cb)) {
     	if (0 != info.window) {
             // Set Window topmost, 0 - zeores are ignored by flags SWP_NOMOVE | SWP_NOSIZE
-            SetWindowPos( info.window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            SetWindowPos(info.window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     	}
     }
-
 #else
 	// оpen default display
 	Display* disp = nullptr;
