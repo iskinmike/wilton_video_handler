@@ -3,15 +3,7 @@
 #include "frame_keeper.hpp"
 
 #include <iostream>
-#ifdef WIN32
-#include <windows.h>
-#include <cstdint>
-#else
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <unistd.h>
-#define MAX_PROPERTY_VALUE_LEN 4096
-#endif
+
 //#include
 namespace {
 
@@ -36,6 +28,23 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 		}
 	}
 	return TRUE;
+}
+
+void setup_display_topmost(const std::string& title, HWND& cam_window){
+    param_info info;
+    info.title = title;
+    info.window = 0;
+
+    LONG_PTR title_cb = reinterpret_cast<std::uintptr_t>(&info);
+    // EnumWindows calls EnumWindowsProc for each avaliable window handler until returns true and stops if false returned.
+    // EnumWindows returns false if EnumWindowsProc return false and true if looks throught all windows.
+    if (!EnumWindows(&EnumWindowsProc, title_cb)) {
+        if (0 != info.window) {
+            // Set Window topmost, 0 - zeores are ignored by flags SWP_NOMOVE | SWP_NOSIZE
+            cam_window = info.window;
+            SetWindowPos(info.window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        }
+    }
 }
 
 #else
@@ -89,6 +98,29 @@ static Window *get_client_list (Display *disp, unsigned long *size) {
 
     return client_list;
 }
+
+static void setup_display_topmost(const std::string& title, Window** cam_window){
+    Display* disp = XOpenDisplay(nullptr);
+    Window *client_list;
+    unsigned long client_list_size;
+
+    client_list = get_client_list(disp, &client_list_size);
+
+    for (unsigned long i = 0; i < client_list_size; i++) {
+        Window *win = &client_list[i];
+        if (nullptr == win) {
+            continue;
+        }
+        std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
+        if (!title.compare(tmp)) {
+            (*cam_window) = win;
+            XRaiseWindow(disp, *win);
+            break;
+        }
+    }
+    XCloseDisplay(disp);
+}
+
 #endif
 } // namespace
 
@@ -101,6 +133,7 @@ void display::run_display()
         display_frame(tmp_frame);
         av_frame_free(&tmp_frame);
         SDL_Event event;
+        set_display_topmost();
         while (SDL_PollEvent(&event)) {
             if( event.type == SDL_QUIT ) break;
         }
@@ -131,10 +164,14 @@ void display::send_result(std::string result) {
 }
 
 display::display(const std::string& title)
-    : renderer(NULL), screen(NULL), texture(NULL), title(title),
+    : renderer(nullptr), screen(nullptr), texture(nullptr), title(title),
       init_result("can't init"), initialized(false) 
 {            
     stop_flag.exchange(false);
+#ifdef WIN32
+#else
+    cam_window = nullptr;
+#endif
 }
 display::~display() {
     stop_display();
@@ -178,41 +215,9 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     }
 
 #ifdef WIN32
-	param_info info;
-	info.title = title;
-	info.window = 0;
-
-	LONG_PTR title_cb = reinterpret_cast<std::uintptr_t>(&info);
-    // EnumWindows calls EnumWindowsProc for each avaliable window handler until returns true and stops if false returned.
-    // EnumWindows returns false if EnumWindowsProc return false and true if looks throught all windows.
-	if (!EnumWindows(&EnumWindowsProc, title_cb)) {
-    	if (0 != info.window) {
-            // Set Window topmost, 0 - zeores are ignored by flags SWP_NOMOVE | SWP_NOSIZE
-            SetWindowPos(info.window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    	}
-    }
+    setup_display_topmost(title, cam_window);
 #else
-	// оpen default display
-	Display* disp = nullptr;
-	disp = XOpenDisplay(NULL);
-
-	Window *client_list;
-	unsigned long client_list_size;
-
-	client_list = get_client_list(disp, &client_list_size);
-
-	for (unsigned long i = 0; i < client_list_size; i++) {
-		Window *win = &client_list[i];
-		if (nullptr == win) {
-			continue;
-		}
-		std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
-		std::cout << tmp << std::endl;
-		if (title.compare(tmp)) {
-			XRaiseWindow(disp, *win);
-			break;
-		}
-	}
+    setup_display_topmost(title, std::addressof(cam_window));
 #endif
 
     initialized = true;
@@ -306,4 +311,14 @@ void display::display_frame(AVFrame *frame)
     delete[] buffer;
     sws_freeContext(sws_ctx);
     av_frame_free(&frame_rgb);
+}
+
+void display::set_display_topmost(){
+#ifdef WIN32
+    SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+#else
+    Display* disp = XOpenDisplay(nullptr);
+    XRaiseWindow(disp, *cam_window);
+    XCloseDisplay(disp);
+#endif
 }

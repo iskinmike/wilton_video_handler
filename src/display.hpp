@@ -25,6 +25,16 @@
 #include <atomic>
 #include <chrono>
 
+#ifdef WIN32
+#include <windows.h>
+#include <cstdint>
+#else
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <unistd.h>
+#define MAX_PROPERTY_VALUE_LEN 4096
+#endif
+
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -36,6 +46,12 @@ class display
     SDL_Renderer* renderer;
     SDL_Window*   screen;
     SDL_Texture*  texture;
+
+#ifdef WIN32
+    HWND cam_window;
+#else
+    Window* cam_window;
+#endif
 
     int width;
     int height;
@@ -64,6 +80,8 @@ public:
 
     bool is_initialized() const;
     void display_frame(AVFrame* frame);
+
+    void set_display_topmost();
 };
 
 
