@@ -36,6 +36,7 @@ set(JANSSON_BUILD_DOCS OFF)
 include_directories(jansson/include)
 link_directories(jansson/lib)
 add_subdirectory(jansson)
+include_directories(rapidjson/include)
 
 set(SOURCES
     src/frame_keeper.cpp

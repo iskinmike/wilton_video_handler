@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * File:   example.cpp
  * Authorы: alex, mike
  *
  * Created on March 28, 2018, 16:32 PM
  */
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
 
 #include <cstring>
 #include <string>
@@ -33,24 +35,24 @@
 #include "video_api.hpp"
 #include "frame_keeper.hpp"
 
-#include "jansson.h"
+//#include "jansson.h"
 
 namespace video_handler {
 
 namespace { //anonymous
 std::map<int,std::shared_ptr<video_api>> vhandlers_keeper;
-int get_integer_or_throw(const std::string& key, json_t* value) {
-    if (json_is_integer(value)) {
-        return static_cast<int>(json_integer_value(value));
-    }
-    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
-}
-std::string get_string_or_throw(const std::string& key, json_t* value) {
-    if (json_is_string(value)) {
-        return std::string{json_string_value(value)};
-    }
-    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains string value"});
-} // anonymous namespace
+//int get_integer_or_throw(const std::string& key, json_t* value) {
+//    if (json_is_integer(value)) {
+//        return static_cast<int>(json_integer_value(value));
+//    }
+//    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
+//}
+//std::string get_string_or_throw(const std::string& key, json_t* value) {
+//    if (json_is_string(value)) {
+//        return std::string{json_string_value(value)};
+//    }
+//    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains string value"});
+//} // anonymous namespace
 
 }
 // handler functions
@@ -171,13 +173,16 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     try {
         auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
 
-        json_t *root;
-        json_error_t error;
+//        json_t *root = nullptr;
+//        json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
-        if(!root) {
-            throw std::invalid_argument("Error: " + std::string{error.text});
-        }
+        rapidjson::Document m_doc;
+        m_doc.Parse(data_in, data_in_len);
+
+//        root = json_loadb(data_in, data_in_len, 0, &error);
+//        if(!root) {
+//            throw std::invalid_argument("Error: " + std::string{error.text});
+//        }
 
         const int not_set = -1;
         int id = 0;
@@ -198,9 +203,33 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         const double error_value = -1.0;
         double framerate = error_value;
 
+
+//        auto it =  m_doc.Begin();
+//        m_doc.HasMember();
+
+        if (m_doc.HasMember("id")) {              id = m_doc["id"].GetInt(); }
+        if (m_doc.HasMember("in")) {              in = m_doc["in"].GetString(); }
+        if (m_doc.HasMember("out")) {             out = m_doc["out"].GetString(); }
+        if (m_doc.HasMember("fmt")) {             fmt = m_doc["fmt"].GetString(); }
+        if (m_doc.HasMember("title")) {           title = m_doc["title"].GetString(); }
+        if (m_doc.HasMember("video_width")) {     video_width = m_doc["video_width"].GetInt(); }
+        if (m_doc.HasMember("video_height")) {    video_height = m_doc["video_height"].GetInt(); }
+        if (m_doc.HasMember("display_width")) {   display_width = m_doc["display_width"].GetInt(); }
+        if (m_doc.HasMember("display_height")) {  display_height = m_doc["display_height"].GetInt(); }
+        if (m_doc.HasMember("photo_width")) {     photo_width = m_doc["photo_width"].GetInt(); }
+        if (m_doc.HasMember("photo_height")) {    photo_height = m_doc["photo_height"].GetInt(); }
+        if (m_doc.HasMember("pos_x")) {           pos_x = m_doc["pos_x"].GetInt(); }
+        if (m_doc.HasMember("pos_y")) {           pos_y = m_doc["pos_y"].GetInt(); }
+        if (m_doc.HasMember("bit_rate")) {        bit_rate = m_doc["bit_rate"].GetInt(); }
+        if (m_doc.HasMember("photo_name")) {      photo_name = m_doc["photo_name"].GetString(); }
+        if (m_doc.HasMember("framerate")) {       framerate = m_doc["framerate"].GetFloat(); }
+
+
+
         /* obj is a JSON object */
+        /*
         const char *key;
-        json_t *value;
+        json_t* value = nullptr;
 
         json_object_foreach(root, key, value) {
             auto key_str = std::string{key};
@@ -246,6 +275,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             }
         }
 
+        */
+
         // check not optional json data
         if (in.empty())  throw std::invalid_argument(
                 "Required parameter 'in' not specified");
@@ -284,7 +315,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
             *data_out = nullptr;
         }
         *data_out_len = static_cast<int>(output.length());
-        json_decref(root);
+//        json_decref(root);
         return nullptr;
 
     } catch (const std::exception& e) {
