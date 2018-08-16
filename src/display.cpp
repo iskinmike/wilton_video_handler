@@ -114,6 +114,10 @@ static void setup_display_topmost(const std::string& title, Window** cam_window)
         std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
         if (!title.compare(tmp)) {
             (*cam_window) = win;
+            XSetWindowAttributes xswa;
+            xswa.override_redirect=True;
+            XChangeWindowAttributes(disp, *win, CWOverrideRedirect, &xswa);
+  
             XRaiseWindow(disp, *win);
             break;
         }
@@ -133,10 +137,11 @@ void display::run_display()
         display_frame(tmp_frame);
         av_frame_free(&tmp_frame);
         SDL_Event event;
-        set_display_topmost();
         while (SDL_PollEvent(&event)) {
+//            std::cout << "Event type: " << event.type << std::endl;
             if( event.type == SDL_QUIT ) break;
         }
+	set_display_topmost();
     }
     stop_flag.exchange(false);
     SDL_DestroyTexture(texture);
