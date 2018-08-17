@@ -2,6 +2,7 @@
 #include "encoder.hpp"
 #include "frame_keeper.hpp"
 #include <iostream>
+#include <cmath>
 
 #ifndef AV_CODEC_FLAG_GLOBAL_HEADER
         #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER
@@ -83,17 +84,19 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     out_stream = avformat_new_stream(out_format_ctx, encode_codec);
     if (!out_stream) return std::string("Could not allocate stream");
 
+    const int half_divider = 2;
     // set Context settings
     out_stream->codec->codec_id = encode_codec->id;
     out_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-    out_stream->codec->gop_size = 0;/* emit every frame as intra frame*/
+    out_stream->codec->gop_size = std::lround(this->framerate/half_divider);/* emit every frame as intra frame*/
     out_stream->codec->time_base = av_inv_q(av_d2q(this->framerate, framerate_max_allowed_num_denum));
-    out_stream->codec->bit_rate = bit_rate;
+
     out_stream->codec->width = width;
     out_stream->codec->height = height;
     out_stream->codec->max_b_frames = 0;
     out_stream->codec->pix_fmt = AV_PIX_FMT_YUV420P;
-    out_stream->codec->bit_rate_tolerance = bit_rate;
+    out_stream->codec->bit_rate = bit_rate;
+    out_stream->codec->bit_rate_tolerance = bit_rate * av_q2d(out_stream->codec->time_base);
     out_stream->codec->rc_buffer_size = bit_rate*10; // this is emperical value to contro bitrate
     out_stream->codec->rc_max_rate = bit_rate; // allows to control bitrate
     out_stream->codec->rc_min_rate = bit_rate; // allows to control bitrate
