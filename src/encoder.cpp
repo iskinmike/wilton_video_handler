@@ -11,6 +11,9 @@
 static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
 {
     /* rescale output packet timestamp values from codec to stream timebase */
+    std::cout << "pkt->pts: " << pkt->pts << std::endl;
+    std::cout << "pkt->dts: " << pkt->dts << std::endl;
+    std::cout << "pkt->duration: " << pkt->duration << std::endl;
     av_packet_rescale_ts(pkt, *time_base, st->time_base);
 
     // On windows there is 10 times error for timing without this hack video will be 10 times longer, than standard video
@@ -18,6 +21,10 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
     pkt->pts = pkt->pts/uint64_t(10);
     pkt->dts = pkt->dts/uint64_t(10);
 #endif
+
+    std::cout << "pkt->pts: " << pkt->pts << std::endl;
+    std::cout << "pkt->dts: " << pkt->dts << std::endl;
+    std::cout << "pkt->duration: " << pkt->duration << std::endl;
 
     /* Write the compressed frame to the media file. */
     return av_interleaved_write_frame(fmt_ctx, pkt);
@@ -164,7 +171,9 @@ int encoder::encode_frame(AVFrame* frame)
     if (frame != NULL) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
+        std::cout << "frame->pts: " << frame->pts << std::endl;
         frame->pts = av_rescale_q(frame->pts, av_make_q(1, AV_TIME_BASE), out_stream->codec->time_base);
+        std::cout << "rescaled: " << frame->pts << std::endl;
         //frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);
         tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames
