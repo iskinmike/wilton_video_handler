@@ -33,7 +33,9 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 void encoder::run_encoding()
 {
     frame_keeper& fk = frame_keeper::instance();
-    input_time_base = fk.get_time_base();
+    if (-1 == input_time_base.den || -1 == input_time_base.num) {
+        input_time_base = fk.get_time_base();
+    }
     while (!stop_flag) {
         AVFrame *tmp_frame = fk.get_frame();
         encode_frame(tmp_frame);
@@ -66,7 +68,7 @@ encoder::~encoder()
 }
 
 // OutFormat And OutStream based on muxing.c example by Fabrice Bellard
-std::string encoder::init(int bit_rate, int width, int height, double framerate)
+std::string encoder::init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num)
 {
     this->bit_rate = bit_rate;
     this->width = width;
@@ -74,6 +76,8 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     const double default_framerate = 25.0;
     const int framerate_max_allowed_num_denum = 100;
     this->framerate = (framerate >= 0) ? framerate : default_framerate;
+    this->input_time_base.den = time_base_den;
+    this->input_time_base.num = time_base_num;
 
     /* allocate the output media context */
     int ret = 0;
@@ -173,6 +177,8 @@ int encoder::encode_frame(AVFrame* frame)
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
         std::cout << "frame->pts: " << frame->pts << std::endl;
+        std::cout << "input_time_base->den: " << input_time_base.den << std::endl;
+        std::cout << "input_time_base->num: " << input_time_base.num << std::endl;
         frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
         std::cout << "rescaled: " << frame->pts << std::endl;
         //frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);

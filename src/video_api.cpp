@@ -65,7 +65,8 @@ std::string video_api::init_encoder() {
     if (!api_decoder->is_initialized()){
         return std::string{};
     }
-    return api_encoder->init(api_decoder->get_bit_rate(), api_decoder->get_width(), api_decoder->get_height(), settings.framerate);
+    return api_encoder->init(api_decoder->get_bit_rate(), api_decoder->get_width(), api_decoder->get_height(),
+                             settings.framerate, settings.time_base_den, settings.time_base_num);
 }
 
 std::string video_api::init_decoder(){

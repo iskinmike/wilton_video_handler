@@ -54,7 +54,7 @@ public:
   encoder(std::string out);
   ~encoder();
 
-  std::string init(int bit_rate, int width, int height, double framerate);
+  std::string init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num);
   void start_encoding();
   void stop_encoding();
 

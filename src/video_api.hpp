@@ -33,6 +33,7 @@ struct video_settings{
     int display_width, display_height;
     int video_width, video_height;
     int photo_width, photo_height;
+    int time_base_den, time_base_num;
 };
 
 class video_api

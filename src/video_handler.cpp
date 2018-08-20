@@ -195,6 +195,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         int display_width = not_set;
         int display_height = not_set;
         int bit_rate = not_set;
+        int time_base_den = not_set;
+        int time_base_num = not_set;
         const double error_value = -1.0;
         double framerate = error_value;
 
@@ -240,6 +242,10 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
                 } else {
                     framerate = get_integer_or_throw(key_str, value);
                 }
+            } else if ("time_base_den" == key_str) {
+                time_base_den = get_integer_or_throw(key_str, value);
+            } else if ("time_base_num" == key_str) {
+                time_base_num = get_integer_or_throw(key_str, value);
             } else {
                 std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
                 throw std::invalid_argument(err_msg);
@@ -274,6 +280,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         settings.bit_rate = bit_rate;
         settings.photo_name = photo_name;
         settings.framerate = framerate;
+        settings.time_base_den = time_base_den;
+        settings.time_base_num = time_base_num;
 
         std::string output = std::to_string(fun(id, settings));
         if (!output.empty()) {
