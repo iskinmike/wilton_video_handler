@@ -171,7 +171,7 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
     try {
         auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
 
-        json_t *root;
+        json_t *root = nullptr;
         json_error_t error;
 
         root = json_loadb(data_in, data_in_len, 0, &error);
@@ -201,8 +201,8 @@ char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, ch
         double framerate = error_value;
 
         /* obj is a JSON object */
-        const char *key;
-        json_t *value;
+        const char *key = nullptr;
+        json_t *value = nullptr;
 
         json_object_foreach(root, key, value) {
             auto key_str = std::string{key};

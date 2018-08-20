@@ -207,7 +207,6 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 			continue;
 		}
 		std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
-		std::cout << tmp << std::endl;
 		if (title.compare(tmp)) {
 			XRaiseWindow(disp, *win);
 			break;
