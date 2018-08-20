@@ -89,8 +89,13 @@ Settings json:
   // pixel pos of left top corner of created display
   "pos_x" : 300,              // Optional. Position X of created window. Default: 100
   "pos_y" : 300               // Optional. Position Y of created window. Default: 100
+  // time base determined as numerator/denumerator.
+  "time_base_den" : 1000000   // Optional. Setup camera time base denumerator. Standart value for Linux: 1000000
+  "time_base_num" : 1         // Optional. Setup camera time base numerator. Standart value: 1
 }
 ```
+ - With some cameras there is a trouble with time_base determination. You may setup time_base manually.
+
 
 Changes for windows:
 ```JavaScript
@@ -99,6 +104,7 @@ Changes for windows:
   "fmt" : "dshow";          // Name of input ffmpeg format. required
 }
 ```
+
 
  Call function from JS example:
 ```JavaScript
