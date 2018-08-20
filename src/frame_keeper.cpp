@@ -66,3 +66,11 @@ AVFrame *frame_keeper::get_current_frame(){
     }
     return nullptr;
 }
+
+void frame_keeper::setup_time_base(AVRational &base) {
+    time_base = base;
+}
+
+AVRational frame_keeper::get_time_base(){
+    return time_base;
+}

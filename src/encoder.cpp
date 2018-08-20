@@ -2,6 +2,7 @@
 #include "encoder.hpp"
 #include "frame_keeper.hpp"
 #include <iostream>
+#include <cmath>
 
 #ifndef AV_CODEC_FLAG_GLOBAL_HEADER
         #define AV_CODEC_FLAG_GLOBAL_HEADER CODEC_FLAG_GLOBAL_HEADER
@@ -12,12 +13,6 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
     /* rescale output packet timestamp values from codec to stream timebase */
     av_packet_rescale_ts(pkt, *time_base, st->time_base);
 
-    // On windows there is 10 times error for timing without this hack video will be 10 times longer, than standard video
-#ifdef WIN32
-    pkt->pts = pkt->pts/uint64_t(10);
-    pkt->dts = pkt->dts/uint64_t(10);
-#endif
-
     /* Write the compressed frame to the media file. */
     return av_interleaved_write_frame(fmt_ctx, pkt);
 }
@@ -25,6 +20,9 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 void encoder::run_encoding()
 {
     frame_keeper& fk = frame_keeper::instance();
+    if (-1 == input_time_base.den || -1 == input_time_base.num) {
+        input_time_base = fk.get_time_base();
+    }
     while (!stop_flag) {
         AVFrame *tmp_frame = fk.get_frame();
         encode_frame(tmp_frame);
@@ -57,7 +55,7 @@ encoder::~encoder()
 }
 
 // OutFormat And OutStream based on muxing.c example by Fabrice Bellard
-std::string encoder::init(int bit_rate, int width, int height, double framerate)
+std::string encoder::init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num)
 {
     this->bit_rate = bit_rate;
     this->width = width;
@@ -65,6 +63,8 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     const double default_framerate = 25.0;
     const int framerate_max_allowed_num_denum = 100;
     this->framerate = (framerate >= 0) ? framerate : default_framerate;
+    this->input_time_base.den = time_base_den;
+    this->input_time_base.num = time_base_num;
 
     /* allocate the output media context */
     int ret = 0;
@@ -83,17 +83,19 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate)
     out_stream = avformat_new_stream(out_format_ctx, encode_codec);
     if (!out_stream) return std::string("Could not allocate stream");
 
+    const int half_divider = 2;
     // set Context settings
     out_stream->codec->codec_id = encode_codec->id;
     out_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-    out_stream->codec->gop_size = 0;/* emit every frame as intra frame*/
+    out_stream->codec->gop_size = std::lround(this->framerate/half_divider);/* emit every frame as intra frame*/
     out_stream->codec->time_base = av_inv_q(av_d2q(this->framerate, framerate_max_allowed_num_denum));
-    out_stream->codec->bit_rate = bit_rate;
+
     out_stream->codec->width = width;
     out_stream->codec->height = height;
     out_stream->codec->max_b_frames = 0;
     out_stream->codec->pix_fmt = AV_PIX_FMT_YUV420P;
-    out_stream->codec->bit_rate_tolerance = bit_rate;
+    out_stream->codec->bit_rate = bit_rate;
+    out_stream->codec->bit_rate_tolerance = bit_rate * av_q2d(out_stream->codec->time_base);
     out_stream->codec->rc_buffer_size = bit_rate*10; // this is emperical value to contro bitrate
     out_stream->codec->rc_max_rate = bit_rate; // allows to control bitrate
     out_stream->codec->rc_min_rate = bit_rate; // allows to control bitrate
@@ -161,7 +163,7 @@ int encoder::encode_frame(AVFrame* frame)
     if (frame != NULL) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
-        frame->pts = av_rescale_q(frame->pts, av_make_q(1, AV_TIME_BASE), out_stream->codec->time_base);
+        frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
         //frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);
         tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames

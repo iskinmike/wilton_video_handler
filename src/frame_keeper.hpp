@@ -41,6 +41,7 @@ class frame_keeper
     AVFrame *frame;
     AVFrame *origin_frame;
     std::mutex mtx;
+    AVRational time_base;
 
     std::vector<sync_waiter*> sync_array;
     void wait_new_frame();
@@ -61,6 +62,8 @@ public:
   AVFrame* get_frame(int& id);
   AVFrame* get_origin_frame();
   AVFrame* get_current_frame();
+  void setup_time_base(AVRational& base);
+  AVRational get_time_base();
 };
 
 #endif  /* FRAME_KEEPER_HPP */

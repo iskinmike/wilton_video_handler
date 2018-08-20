@@ -42,6 +42,7 @@ class encoder
     int height;
     bool pts_flag;
     int64_t last_pts;
+    AVRational input_time_base;
 
     FILE *file;
     std::thread encoder_thread;
@@ -53,7 +54,7 @@ public:
   encoder(std::string out);
   ~encoder();
 
-  std::string init(int bit_rate, int width, int height, double framerate);
+  std::string init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num);
   void start_encoding();
   void stop_encoding();
 
