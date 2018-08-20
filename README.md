@@ -95,7 +95,11 @@ Settings json:
 }
 ```
  - With some cameras there is a trouble with time_base determination. You may setup time_base manually.
-
+On windows HP cam you may try options 
+```js
+{"time_base_den" : 10000000, 
+  "time_base_num" : 1}
+```
 
 Changes for windows:
 ```JavaScript
