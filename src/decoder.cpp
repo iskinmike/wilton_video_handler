@@ -6,6 +6,8 @@ void decoder::run_decoding()
 {
     bool first_run = true;
     uint64_t pts_offset = 0;
+    // setup frame_time_base
+    frame_keeper::instance().setup_time_base(codec_ctx->time_base);
     while(av_read_frame(format_ctx, &packet)>=0) {
         // Is this a packet from the video stream?
         if(packet.stream_index==video_stream) {
@@ -144,6 +146,7 @@ std::string decoder::init()
     if (-1 == width) width = codec_ctx->width;
     if (-1 == height) height = codec_ctx->height;
     if (-1 == bit_rate) bit_rate = codec_ctx->bit_rate;
+
 
     // Determine required buffer size and allocate buffer
     num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);

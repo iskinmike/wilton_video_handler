@@ -42,6 +42,7 @@ class encoder
     int height;
     bool pts_flag;
     int64_t last_pts;
+    AVRational input_time_base;
 
     FILE *file;
     std::thread encoder_thread;
