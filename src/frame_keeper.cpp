@@ -1,9 +1,8 @@
 
 #include "frame_keeper.hpp"
-
+#include <iostream>
 frame_keeper::~frame_keeper(){
     av_frame_free(&frame);
-    av_frame_free(&origin_frame);
 }
 
 void frame_keeper::wait_new_frame()
@@ -23,16 +22,19 @@ void frame_keeper::wait_new_frame()
     }
 }
 
-void frame_keeper::assig_new_frames(AVFrame* new_frame, AVFrame *new_origin_frame)
+void frame_keeper::assig_new_frame(AVFrame* new_frame)
 {
     std::lock_guard<std::mutex> lock(mtx);
-    av_frame_free(&frame);
-    av_frame_free(&origin_frame);
-    frame = av_frame_clone(new_frame);
-    origin_frame = av_frame_clone(new_origin_frame);
+    {
+        std::lock_guard<std::mutex> lock(frame_mtx);
+        if (frame != nullptr) {
+            av_frame_free(&frame);
+        }
+        frame = av_frame_clone(new_frame);
+    }
     for (auto el : sync_array) {
         el->flag.exchange(true);
-        el->cond.notify_all();
+        el->cond.notify_one();
     }
     sync_array.clear();
 }
@@ -49,18 +51,8 @@ AVFrame* frame_keeper::get_frame(int& id)
     return get_current_frame();
 }
 
-AVFrame* frame_keeper::get_origin_frame()
-{
-    wait_new_frame();
-    std::lock_guard<std::mutex> lock(mtx);
-    if (nullptr != origin_frame) {
-        return av_frame_clone(origin_frame);
-    }
-    return nullptr;
-}
-
 AVFrame *frame_keeper::get_current_frame(){
-    std::lock_guard<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(frame_mtx);
     if (nullptr != frame) {
         return av_frame_clone(frame);
     }

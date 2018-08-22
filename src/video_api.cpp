@@ -130,5 +130,5 @@ void video_api::stop_video_display()
 
 std::string video_api::make_photo()
 {
-    return photo::make_photo(settings.photo_name, settings.photo_width, settings.photo_height);
+    return photo::make_photo(settings.photo_name, settings.photo_width, settings.photo_height, std::make_shared<frame_keeper>());
 }

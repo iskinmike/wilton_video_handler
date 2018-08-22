@@ -1,6 +1,6 @@
 
 #include "encoder.hpp"
-#include "frame_keeper.hpp"
+
 #include <iostream>
 #include <cmath>
 
@@ -19,16 +19,61 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void encoder::run_encoding()
 {
-    frame_keeper& fk = frame_keeper::instance();
-    if (-1 == input_time_base.den || -1 == input_time_base.num) {
-        input_time_base = fk.get_time_base();
-    }
+    input_time_base = get_time_base_from_keeper();
+    first_run = true;
+    pts_offset = 0;
     while (!stop_flag) {
-        AVFrame *tmp_frame = fk.get_frame();
-        encode_frame(tmp_frame);
-        av_frame_free(&tmp_frame);
+        AVFrame *tmp_frame = get_frame_from_keeper();
+        if (nullptr != tmp_frame) {
+            rescale_frame(tmp_frame);
+            encode_frame(frame_out);
+            av_frame_free(&tmp_frame);
+        }
     }
     stop_flag.exchange(false);
+    encoding_started.exchange(false);
+}
+
+AVFrame *encoder::get_frame_from_keeper() {
+    std::lock_guard<std::mutex> guard(mtx);
+    return keeper->get_frame();
+}
+
+AVRational encoder::get_time_base_from_keeper(){
+    return keeper->get_time_base();
+}
+
+void encoder::rescale_frame(AVFrame *frame){
+    if (first_run) {
+        first_run = false;
+        pts_offset = frame->best_effort_timestamp - last_time;
+        frame->key_frame = 1;
+    }
+    sws_ctx = sws_getContext
+    (
+        frame->width,
+        frame->height,
+        static_cast<AVPixelFormat>(frame->format),
+        width,
+        height,
+        AV_PIX_FMT_YUV420P,
+        SWS_BILINEAR,
+        NULL,
+        NULL,
+        NULL
+    );
+    sws_scale(sws_ctx,
+              ((AVPicture*)frame)->data, ((AVPicture*)frame)->linesize, 0,
+              frame->height, ((AVPicture *)frame_out)->data,
+              ((AVPicture *)frame_out)->linesize);
+
+    frame_out->pts = frame->best_effort_timestamp - pts_offset;
+    frame_out->format = AV_PIX_FMT_YUV420P;
+    frame_out->width = width;
+    frame_out->height = height;
+    frame_out->pkt_dts = frame->pkt_dts;
+    frame_out->pkt_pts = frame->pkt_pts;
+    frame_out->pkt_duration = frame->pkt_duration;
 }
 
 bool encoder::is_initialized() const
@@ -36,11 +81,27 @@ bool encoder::is_initialized() const
     return initialized;
 }
 
-encoder::encoder(std::string out)
-    : encode_codec(NULL), out_file(out), initialized(false), 
-      out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1) 
+void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
+    if (encoding_started) {
+        pause_encoding();
+        {
+            std::lock_guard<std::mutex> guard(mtx);
+            this->keeper = keeper;
+        }
+        start_encoding();
+    } else {
+        std::lock_guard<std::mutex> guard(mtx);
+        this->keeper = keeper;
+    }
+}
+
+encoder::encoder(encoder_settings set)
+    : encode_codec(NULL), out_file(set.output_file), initialized(false),
+      out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1), last_time(0),
+      bit_rate(set.bit_rate), width(set.width), height(set.height), framerate(set.framerate)
 {
     stop_flag.exchange(false);
+    encoding_started.exchange(false);
 }
 
 encoder::~encoder()
@@ -51,20 +112,18 @@ encoder::~encoder()
         avformat_flush(out_format_ctx);
         // automatically set pOutFormatCtx to NULL and frees all its allocated data
         avformat_free_context(out_format_ctx);
+        av_frame_free(&frame_out);
+        delete[] buffer;
+        sws_freeContext(sws_ctx);
     }
 }
 
 // OutFormat And OutStream based on muxing.c example by Fabrice Bellard
-std::string encoder::init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num)
+std::string encoder::init()
 {
-    this->bit_rate = bit_rate;
-    this->width = width;
-    this->height = height;
     const double default_framerate = 25.0;
     const int framerate_max_allowed_num_denum = 100;
-    this->framerate = (framerate >= 0) ? framerate : default_framerate;
-    this->input_time_base.den = time_base_den;
-    this->input_time_base.num = time_base_num;
+    framerate = (framerate >= 0) ? framerate : default_framerate;
 
     /* allocate the output media context */
     int ret = 0;
@@ -128,14 +187,35 @@ std::string encoder::init(int bit_rate, int width, int height, double framerate,
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);
+
+    frame_out=av_frame_alloc();
+    if(frame_out==NULL){
+        return std::string("Can't allocate frame");
+    }
+
+    // Determine required buffer size and allocate buffer
+    num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
+    buffer = new uint8_t[num_bytes*sizeof(uint8_t)];
+
+    // Assign appropriate parts of buffer to image planes in pFrameOut
+    // Note that pFrameOut is an AVFrame, but AVFrame is a superset
+    // of AVPicture
+    avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
+
     initialized = true;
     return std::string{};
 }
 
-void encoder::start_encoding()
+std::string encoder::start_encoding()
 {
     // start wait to frame keeper signal
-    encoder_thread = std::thread([this] {return this->run_encoding();});
+    if (keeper && !encoding_started){
+        encoder_thread = std::thread([this] {return this->run_encoding();});
+        encoding_started.exchange(true);
+    } else {
+        return std::string{"{ \"error\": \"Decoder not setted\"}"};
+    }
+    return std::string();
 }
 
 void encoder::stop_encoding()
@@ -147,6 +227,13 @@ void encoder::stop_encoding()
     if (initialized) {
         fflush_encoder();
         close_file();
+    }
+}
+
+void encoder::pause_encoding(){
+    stop_flag.exchange(true);
+    if (encoder_thread.joinable()) {
+        encoder_thread.join();
     }
 }
 
@@ -163,13 +250,14 @@ int encoder::encode_frame(AVFrame* frame)
     if (frame != NULL) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
+        last_time = frame->pts;
         frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
-        //frame->pts = av_rescale_q(frame->pts, AV_TIME_BASE_Q, out_stream->codec->time_base);
         tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames
         if (last_pts == tmp) {
             return 0;
         }
+
         last_pts = tmp;
     }
 

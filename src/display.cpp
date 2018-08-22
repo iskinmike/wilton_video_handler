@@ -127,9 +127,8 @@ static void setup_display_topmost(const std::string& title, Window** cam_window)
 
 void display::run_display()
 {
-    frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        AVFrame *tmp_frame = fk.get_current_frame();
+        AVFrame *tmp_frame = get_frame_from_keeper();
         display_frame(tmp_frame);
         av_frame_free(&tmp_frame);
         SDL_Event event;
@@ -139,10 +138,6 @@ void display::run_display()
         }
     }
     stop_flag.exchange(false);
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(screen);
-    SDL_Quit();
 }
 
 std::string display::wait_result(){
@@ -163,9 +158,15 @@ void display::send_result(std::string result) {
     sync_point.cond.notify_all();
 }
 
-display::display(const std::string& title)
-    : renderer(nullptr), screen(nullptr), texture(nullptr), title(title),
-      init_result("can't init"), initialized(false) 
+AVFrame *display::get_frame_from_keeper() {
+    std::lock_guard<std::mutex> guard(mtx);
+    return keeper->get_frame();
+}
+
+display::display(display_settings set)
+    : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title),
+      init_result("can't init"), initialized(false), width(set.width),
+      height(set.height), pos_x(set.pos_x), pos_y(set.pos_y)
 {            
     stop_flag.exchange(false);
 #ifdef WIN32
@@ -177,11 +178,8 @@ display::~display() {
     stop_display();
 }
 
-std::string display::init(int pos_x, int pos_y, int width, int height)
+std::string display::init()
 {
-    this->width = width;
-    this->height = height;
-
     const int default_screen_pos = 100;
     int screen_pos_x = (-1 != pos_x) ? pos_x : default_screen_pos ;
     int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
@@ -224,19 +222,30 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
     return std::string{};
 }
 
-std::string display::start_display(int pos_x, int pos_y, int width, int height)
+std::string display::start_display()
 {
-    display_thread = std::thread([this, pos_x, pos_y, width, height] {
-        send_result(init(pos_x, pos_y, width, height));
-        this->run_display();
-    });
-    return wait_result();
+    if (keeper){
+        display_thread = std::thread([this] {
+            send_result(init());
+            this->run_display();
+        });
+        return wait_result();
+    }
+    return std::string{"{ \"error\": \"Decoder not setted\"}"};
 }
 
 void display::stop_display()
 {
     stop_flag.exchange(true);
     if (display_thread.joinable()) display_thread.join();
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(screen);
+    SDL_Quit();
+}
+
+void display::pause_encoding(){
+    stop_flag.exchange(true);
 }
 
 bool display::is_initialized() const {
@@ -321,4 +330,9 @@ void display::set_display_topmost(){
     XRaiseWindow(disp, *cam_window);
     XCloseDisplay(disp);
 #endif
+}
+
+void display::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
+    std::lock_guard<std::mutex> guard(mtx);
+    this->keeper = keeper;
 }

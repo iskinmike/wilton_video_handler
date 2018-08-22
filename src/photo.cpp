@@ -15,13 +15,12 @@ namespace {
     const int not_set = -1;
 }
 
-std::string make_photo(std::string out_file, int photo_width, int photo_height)
+std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper)
 {
     AVFrame* frame_rgb;
     struct SwsContext* sws_ctx;
 
-    frame_keeper& fk = frame_keeper::instance();
-    AVFrame* frame = fk.get_origin_frame();
+    AVFrame* frame = keeper->get_frame();
 
     if (nullptr == frame) {
         return error_return("Can't make Photo. Get 'NULL'' frame.");

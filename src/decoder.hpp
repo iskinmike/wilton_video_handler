@@ -29,7 +29,15 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <stdio.h>
 #include <iostream>
 #include <thread>
+#include <memory>
 #include <atomic>
+#include "frame_keeper.hpp"
+
+
+struct decoder_settings {
+    std::string input_file, format;
+    int time_base_den, time_base_num;
+};
 
 void start_decode_video(std::string file_name);
 
@@ -42,11 +50,8 @@ class decoder
     AVCodecContext*  codec_ctx;
     AVCodec*         codec;
     AVFrame*         frame;
-    AVFrame*         frame_out;
-
-    struct SwsContext* sws_ctx;
-    int                num_bytes;
-    uint8_t*           buffer;
+    std::shared_ptr<frame_keeper> keeper;
+    AVRational input_time_base;
 
     AVPacket        packet;
     int             frame_finished;
@@ -62,7 +67,7 @@ class decoder
 
     std::atomic_bool stop_flag;
 public:
-  decoder(std::string in, std::string format, int widtth, int height, int bit_rate);
+  decoder(decoder_settings set);
   ~decoder();
 
   std::string init();
@@ -73,6 +78,8 @@ public:
   int get_bit_rate();
   int get_width();
   int get_height();
+
+  std::shared_ptr<frame_keeper> get_keeper();
 
   bool is_initialized() const;
 };
