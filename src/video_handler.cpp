@@ -167,6 +167,40 @@ char* vahandler_wrapper(void* ctx, const char* data_in, int data_in_len, char** 
     }
 }
 
+char* vahandler_is_init(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    try {
+        auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
+        auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        auto id = std::stoi(str_id);
+        // chek if handler with id initialized
+        auto output = std::string{};
+        if (nullptr == vhandlers_keeper[id]) {
+            output = "0";
+        } else {
+            output = fun(id);
+        }
+        if (!output.empty()) {
+            // nul termination here is required only for JavaScriptCore engine
+            *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+            std::memcpy(*data_out, output.c_str(), output.length() + 1);
+        } else {
+            *data_out = nullptr;
+        }
+        *data_out_len = static_cast<int>(output.length());
+        return nullptr;
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    } catch (...) {
+        auto what = std::string("CALL ERROR"); // std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    }
+}
+
 char* vahandler_wrapper_init(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
         auto fun = reinterpret_cast<int(*)(int, video_settings)> (ctx);
@@ -383,22 +417,22 @@ char* wilton_module_init() {
     // register 'av_is_started' function
     auto name_av_is_started = std::string("av_is_started");
     err = wiltoncall_register(name_av_is_started.c_str(), static_cast<int> (name_av_is_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_started), video_handler::vahandler_wrapper);
+            reinterpret_cast<void*> (video_handler::av_is_started), video_handler::vahandler_is_init);
     if (nullptr != err) return err;
     // register 'av_is_decoder_started' function
     auto name_av_is_decoder_started = std::string("av_is_decoder_started");
     err = wiltoncall_register(name_av_is_decoder_started.c_str(), static_cast<int> (name_av_is_decoder_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_decoder_started), video_handler::vahandler_wrapper);
+            reinterpret_cast<void*> (video_handler::av_is_decoder_started), video_handler::vahandler_is_init);
     if (nullptr != err) return err;
     // register 'av_is_encoder_started' function
     auto name_av_is_encoder_started = std::string("av_is_encoder_started");
     err = wiltoncall_register(name_av_is_encoder_started.c_str(), static_cast<int> (name_av_is_encoder_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper);
+            reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_is_init);
     if (nullptr != err) return err;
     // register 'av_is_display_started' function
     auto name_av_is_display_started = std::string("av_is_display_started");
     err = wiltoncall_register(name_av_is_display_started.c_str(), static_cast<int> (name_av_is_display_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_wrapper);
+            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_is_init);
     if (nullptr != err) return err;
 
     // register 'av_inti_handler' function
