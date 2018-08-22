@@ -262,6 +262,108 @@ char* vahandler_wrapper_display(void* ctx, const char* data_in, int data_in_len,
         return err;
     }
 }
+
+char* vahandler_wrapper_encoder_is_started(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    try {
+        auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
+        auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        auto id = std::stoi(str_id);
+        // chek if handler with id initialized
+        auto output = std::string{};
+        if (nullptr == encoders[id]) {
+            output = "0";
+        } else {
+            output = fun(id);
+        }
+        if (!output.empty()) {
+            // nul termination here is required only for JavaScriptCore engine
+            *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+            std::memcpy(*data_out, output.c_str(), output.length() + 1);
+        } else {
+            *data_out = nullptr;
+        }
+        *data_out_len = static_cast<int>(output.length());
+        return nullptr;
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    } catch (...) {
+        auto what = std::string("CALL ERROR"); // std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    }
+}
+char* vahandler_wrapper_decoder_is_started(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    try {
+        auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
+        auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        auto id = std::stoi(str_id);
+        // chek if handler with id initialized
+        auto output = std::string{};
+        if (nullptr == decoders[id]) {
+            output = "0";
+        } else {
+            output = fun(id);
+        }
+        if (!output.empty()) {
+            // nul termination here is required only for JavaScriptCore engine
+            *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+            std::memcpy(*data_out, output.c_str(), output.length() + 1);
+        } else {
+            *data_out = nullptr;
+        }
+        *data_out_len = static_cast<int>(output.length());
+        return nullptr;
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    } catch (...) {
+        auto what = std::string("CALL ERROR"); // std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    }
+}
+char* vahandler_wrapper_display_is_started(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    try {
+        auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
+        auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        auto id = std::stoi(str_id);
+        // chek if handler with id initialized
+        auto output = std::string{};
+        if (nullptr == displays[id]) {
+            output = "0";
+        } else {
+            output = fun(id);
+        }
+        if (!output.empty()) {
+            // nul termination here is required only for JavaScriptCore engine
+            *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+            std::memcpy(*data_out, output.c_str(), output.length() + 1);
+        } else {
+            *data_out = nullptr;
+        }
+        *data_out_len = static_cast<int>(output.length());
+        return nullptr;
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    } catch (...) {
+        auto what = std::string("CALL ERROR"); // std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    }
+}
+
+
 char* vahandler_wrapper_setup_decoder_to_encoder(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
         auto fun = reinterpret_cast<std::string(*)(int, int)> (ctx);
@@ -754,17 +856,17 @@ char* wilton_module_init() {
     // register 'av_is_decoder_started' function
     auto name_av_is_decoder_started = std::string("av_is_decoder_started");
     err = wiltoncall_register(name_av_is_decoder_started.c_str(), static_cast<int> (name_av_is_decoder_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_decoder_started), video_handler::vahandler_wrapper_decoder);
+            reinterpret_cast<void*> (video_handler::av_is_decoder_started), video_handler::vahandler_wrapper_decoder_is_started);
     if (nullptr != err) return err;
     // register 'av_is_encoder_started' function
     auto name_av_is_encoder_started = std::string("av_is_encoder_started");
     err = wiltoncall_register(name_av_is_encoder_started.c_str(), static_cast<int> (name_av_is_encoder_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper_encoder);
+            reinterpret_cast<void*> (video_handler::av_is_encoder_started), video_handler::vahandler_wrapper_encoder_is_started);
     if (nullptr != err) return err;
     // register 'av_is_display_started' function
     auto name_av_is_display_started = std::string("av_is_display_started");
     err = wiltoncall_register(name_av_is_display_started.c_str(), static_cast<int> (name_av_is_display_started.length()),
-            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_wrapper_display);
+            reinterpret_cast<void*> (video_handler::av_is_display_started), video_handler::vahandler_wrapper_display_is_started);
     if (nullptr != err) return err;
 //////////////////////////
     // register 'av_init_decoder' function
