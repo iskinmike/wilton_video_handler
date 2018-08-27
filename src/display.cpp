@@ -163,6 +163,13 @@ AVFrame *display::get_frame_from_keeper() {
     return keeper->get_frame();
 }
 
+std::string display::construct_error(std::string what){
+    std::string error("{ \"error\": \"");
+    error += what;
+    error += "\"}";
+    return error;
+}
+
 display::display(display_settings set)
     : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title),
       init_result("can't init"), initialized(false), width(set.width),
@@ -185,7 +192,7 @@ std::string display::init()
     int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
 
     if(SDL_Init(SDL_INIT_VIDEO)) {
-      return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
+        return construct_error("Could not initialize SDL - " + std::string(SDL_GetError()));
     }
 
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
@@ -193,14 +200,14 @@ std::string display::init()
 
     if(!screen) {
         SDL_Quit();
-        return std::string("SDL: could not set video mode - exiting");
+        return construct_error("SDL: could not set video mode - exiting");
     }
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
         SDL_DestroyWindow(screen);
         SDL_Quit();
-        return std::string("SDL: could not create renderer - exiting");
+        return construct_error("SDL: could not create renderer - exiting");
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
@@ -209,7 +216,7 @@ std::string display::init()
         SDL_DestroyWindow(screen);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
-        return std::string("SDL: could not create texture - exiting");
+        return construct_error("SDL: could not create texture - exiting");
     }
 
 #ifdef WIN32

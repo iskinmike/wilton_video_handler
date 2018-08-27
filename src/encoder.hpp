@@ -75,7 +75,7 @@ class encoder
     AVFrame* get_frame_from_keeper();
     AVRational get_time_base_from_keeper();
     void rescale_frame(AVFrame* frame);
-
+    std::string construct_error(std::string what);
 public:
   explicit encoder(encoder_settings set);
   ~encoder();

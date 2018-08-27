@@ -25,6 +25,13 @@ void decoder::run_decoding()
     stop_flag.exchange(false);
 }
 
+std::string decoder::construct_error(std::string what){
+    std::string error("{ \"error\": \"");
+    error += what;
+    error += "\"}";
+    return error;
+}
+
 bool decoder::is_initialized() const
 {
     return initialized;
@@ -60,24 +67,24 @@ std::string decoder::init()
     // determine format context
     format_ctx = avformat_alloc_context();
     if (!format_ctx) {
-        return std::string("Memory error");
+        return construct_error("Memory error");
     }
 
     file_iformat = av_find_input_format(format.c_str());
     if (file_iformat == NULL) {
-        return std::string("Unknown input format: ") + format; 
+        return construct_error("Unknown input format: " + format);
     }
 
     // Open video file
     if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, NULL)!=0){
-      if(avformat_open_input(&format_ctx, filename.c_str(), NULL, NULL)!=0){
-          return std::string("Can't Open video file anyway");
-      }
+        if(avformat_open_input(&format_ctx, filename.c_str(), NULL, NULL)!=0){
+            return construct_error("Can't Open video file anyway");
+        }
     }
 
     // Retrieve stream information
     if(avformat_find_stream_info(format_ctx, NULL)<0) {
-      return std::string("Can't Retrieve stream information");
+        return construct_error("Can't Retrieve stream information");
     }
 
     // Dump information about file onto standard error
@@ -91,7 +98,7 @@ std::string decoder::init()
       break;
     }
     if(video_stream==-1) {
-        return std::string("Can't find streams");
+        return construct_error("Can't find streams");
     }
 
     // Get a pointer to the codec context for the video stream
@@ -100,13 +107,13 @@ std::string decoder::init()
     // Find the decoder for the video stream
     codec=avcodec_find_decoder(codec_ctx->codec_id);
     if(codec==NULL) {
-      return std::string("Unsupported codec!");
+        return construct_error("Unsupported codec!");
     }
 
     // Open codec
     if(avcodec_open2(codec_ctx, codec, NULL)<0) {
         printf("Can't open codec\n");
-        return std::string("Can't open codec"); // Could not open codec
+        return construct_error("Can't open codec"); // Could not open codec
     }
 
     // Allocate video frame

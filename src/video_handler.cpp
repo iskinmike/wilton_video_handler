@@ -58,7 +58,6 @@ std::string get_string_or_throw(const std::string& key, json_t* value) {
 }
 } // anonymous namespace
 
-
 // handler functions
 int av_init_encoder(int id, encoder_settings set){
     if (encoders.count(id)){

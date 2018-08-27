@@ -66,22 +66,24 @@ class decoder
     bool initialized;
 
     std::atomic_bool stop_flag;
+    std::string construct_error(std::string what);
+
 public:
-  decoder(decoder_settings set);
-  ~decoder();
+    decoder(decoder_settings set);
+    ~decoder();
 
-  std::string init();
+    std::string init();
 
-  void start_decoding();
-  void stop_decoding();
+    void start_decoding();
+    void stop_decoding();
 
-  int get_bit_rate();
-  int get_width();
-  int get_height();
+    int get_bit_rate();
+    int get_width();
+    int get_height();
 
-  std::shared_ptr<frame_keeper> get_keeper();
+    std::shared_ptr<frame_keeper> get_keeper();
 
-  bool is_initialized() const;
+    bool is_initialized() const;
 };
 
 #endif  /* DECODER_HPP */
