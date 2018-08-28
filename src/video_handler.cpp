@@ -459,7 +459,7 @@ char* vahandler_wrapper_setup_decoder_to_display(void* ctx, const char* data_in,
         auto output = std::string{};
         if (nullptr == decoders[decoder_id]) {
             output = "{ \"error\": \"Decoder with id [" + std::to_string(decoder_id) + "] not exists\"}";
-        } else if (nullptr == encoders[display_id]) {
+        } else if (nullptr == displays[display_id]) {
             output = "{ \"error\": \"Display with id [" + std::to_string(display_id) + "] not exists\"}";
         } else {
             output = fun(display_id, decoder_id);
