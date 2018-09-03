@@ -28,6 +28,8 @@ void encoder::run_encoding()
             rescale_frame(tmp_frame);
             encode_frame(frame_out);
             av_frame_free(&tmp_frame);
+            av_frame_free(&frame_out);
+            delete[] buffer;
         }
     }
     stop_flag.exchange(false);
@@ -44,6 +46,17 @@ AVRational encoder::get_time_base_from_keeper(){
 }
 
 void encoder::rescale_frame(AVFrame *frame){
+    frame_out=av_frame_alloc();
+
+    // Determine required buffer size and allocate buffer
+    num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
+    buffer = new uint8_t[num_bytes*sizeof(uint8_t)];
+
+    // Assign appropriate parts of buffer to image planes in pFrameOut
+    // Note that pFrameOut is an AVFrame, but AVFrame is a superset
+    // of AVPicture
+    avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
+
     if (first_run) {
         first_run = false;
         pts_offset = frame->best_effort_timestamp - last_time;
@@ -74,6 +87,8 @@ void encoder::rescale_frame(AVFrame *frame){
     frame_out->pkt_dts = frame->pkt_dts;
     frame_out->pkt_pts = frame->pkt_pts;
     frame_out->pkt_duration = frame->pkt_duration;
+
+    sws_freeContext(sws_ctx);
 }
 
 std::string encoder::construct_error(std::string what){
@@ -119,9 +134,8 @@ encoder::~encoder()
         avformat_flush(out_format_ctx);
         // automatically set pOutFormatCtx to NULL and frees all its allocated data
         avformat_free_context(out_format_ctx);
-        av_frame_free(&frame_out);
-        delete[] buffer;
-        sws_freeContext(sws_ctx);
+//        av_frame_free(&frame_out);
+//        delete[] buffer;
     }
 }
 
@@ -194,20 +208,6 @@ std::string encoder::init()
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);
-
-    frame_out=av_frame_alloc();
-    if(frame_out==NULL){
-        return construct_error("Can't allocate frame");
-    }
-
-    // Determine required buffer size and allocate buffer
-    num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
-    buffer = new uint8_t[num_bytes*sizeof(uint8_t)];
-
-    // Assign appropriate parts of buffer to image planes in pFrameOut
-    // Note that pFrameOut is an AVFrame, but AVFrame is a superset
-    // of AVPicture
-    avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
 
     initialized = true;
     return std::string{};

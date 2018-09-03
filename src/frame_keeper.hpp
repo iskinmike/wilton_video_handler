@@ -53,7 +53,6 @@ public:
   
     void assig_new_frame(AVFrame *new_frame);
     AVFrame* get_frame();
-    AVFrame* get_frame(int& id);
     AVFrame* get_current_frame();
     void setup_time_base(AVRational& base);
     AVRational get_time_base();

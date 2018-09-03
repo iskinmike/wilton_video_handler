@@ -41,12 +41,6 @@ void frame_keeper::assig_new_frame(AVFrame* new_frame)
 
 AVFrame* frame_keeper::get_frame()
 {
-    int proxy_id = 0;
-    return get_frame(proxy_id);
-}
-
-AVFrame* frame_keeper::get_frame(int& id)
-{
     wait_new_frame();
     return get_current_frame();
 }

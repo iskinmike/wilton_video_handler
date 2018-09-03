@@ -3,6 +3,7 @@
 #include "frame_keeper.hpp"
 
 #include <iostream>
+#include <map>
 
 //#include
 namespace {
@@ -48,16 +49,49 @@ void setup_display_topmost(const std::string& title, HWND& cam_window){
 }
 
 #else
-static char *get_property (Display *disp, Window win,
-        Atom xa_prop_type, const char *prop_name, unsigned long *size) {
+
+std::vector<Window> get_property_as_window(Display *disp, Window win,
+        Atom xa_prop_type, const char *prop_name) {
     Atom xa_prop_name;
     Atom xa_ret_type;
     int ret_format;
     unsigned long ret_nitems;
     unsigned long ret_bytes_after;
-    unsigned long tmp_size;
+    unsigned char* ret_prop = nullptr;
+    unsigned char** ret_prop_ptr = &ret_prop;
+    std::vector<Window> ret;
+
+    xa_prop_name = XInternAtom(disp, prop_name, False);
+
+    /* MAX_PROPERTY_VALUE_LEN / 4 explanation (XGcd etWindowProperty manpage):
+     *
+     * long_length = Specifies the length in 32-bit multiples of the
+     *               data to be retrieved.
+     */
+    XGetWindowProperty(disp, win, xa_prop_name, 0, MAX_PROPERTY_VALUE_LEN / 4, False,
+            xa_prop_type, &xa_ret_type, &ret_format,
+            &ret_nitems, &ret_bytes_after, ret_prop_ptr);
+
+    for (size_t i = 0; i < ret_nitems; ++i) {
+        if (nullptr != ret_prop) {
+            Window* tmp_ptr = static_cast<Window*>(static_cast<void*>(ret_prop + i*sizeof(unsigned char*)));
+            ret.push_back(*tmp_ptr);
+        }
+    }
+
+    XFree(ret_prop);
+    return ret;
+}
+
+std::string get_property_as_string(Display *disp, Window win,
+        Atom xa_prop_type, const char *prop_name) {
+    Atom xa_prop_name;
+    Atom xa_ret_type;
+    int ret_format;
+    unsigned long ret_nitems;
+    unsigned long ret_bytes_after;
     unsigned char *ret_prop;
-    char *ret;
+    std::string ret;
 
     xa_prop_name = XInternAtom(disp, prop_name, False);
 
@@ -70,54 +104,40 @@ static char *get_property (Display *disp, Window win,
             xa_prop_type, &xa_ret_type, &ret_format,
             &ret_nitems, &ret_bytes_after, &ret_prop);
 
-    /* null terminate the result to make string handling easier */
-    tmp_size = (ret_format / (32 / sizeof(long))) * ret_nitems;
-    ret = (char*) malloc(tmp_size + 1);
-    memcpy(ret, ret_prop, tmp_size);
-    ret[tmp_size] = '\0';
-
-    if (size) {
-        *size = tmp_size;
-    }
+    char* ret_ptr = static_cast<char*>(static_cast<void*>(ret_prop));
+    ret.assign(ret_ptr, ret_nitems);
 
     XFree(ret_prop);
     return ret;
 }
 
+static std::vector<Window> get_client_array(Display *disp) {
+    std::vector<Window> client_list;
 
-static Window *get_client_list (Display *disp, unsigned long *size) {
-    Window *client_list;
+    client_list = get_property_as_window(disp, DefaultRootWindow(disp),
+                        XA_WINDOW, "_NET_CLIENT_LIST");
 
-    if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
-                    XA_WINDOW, "_NET_CLIENT_LIST", size)) == NULL) {
-        if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
-                        XA_CARDINAL, "_WIN_CLIENT_LIST", size)) == NULL) {
-            return NULL;
-        }
+    if (!client_list.size()) {
+        client_list = get_property_as_window(disp, DefaultRootWindow(disp),
+                                XA_CARDINAL, "_WIN_CLIENT_LIST");
     }
 
     return client_list;
 }
 
-static void setup_display_topmost(const std::string& title, Window** cam_window){
+static void setup_display_topmost(const std::string& title, Window* cam_window){
     Display* disp = XOpenDisplay(nullptr);
-    Window *client_list;
-    unsigned long client_list_size;
+    auto tmp_arr = get_client_array(disp);
 
-    client_list = get_client_list(disp, &client_list_size);
-
-    for (unsigned long i = 0; i < client_list_size; i++) {
-        Window *win = &client_list[i];
-        if (nullptr == win) {
-            continue;
-        }
-        std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
+    for (size_t i = 0; i < tmp_arr.size(); ++i){
+        std::string tmp(get_property_as_string(disp, tmp_arr[i], XA_STRING, "WM_NAME"));
         if (!title.compare(tmp)) {
-            (*cam_window) = win;
-            XRaiseWindow(disp, *win);
-            break;
-        }
+           (*cam_window) = tmp_arr[i];
+           XRaiseWindow(disp, tmp_arr[i]);
+           break;
+       }
     }
+
     XCloseDisplay(disp);
 }
 
@@ -178,7 +198,7 @@ display::display(display_settings set)
     stop_flag.exchange(false);
 #ifdef WIN32
 #else
-    cam_window = nullptr;
+//    cam_window = nullptr;
 #endif
 }
 display::~display() {
@@ -251,10 +271,6 @@ void display::stop_display()
     SDL_Quit();
 }
 
-void display::pause_encoding(){
-    stop_flag.exchange(true);
-}
-
 bool display::is_initialized() const {
     return initialized;
 }
@@ -323,7 +339,6 @@ void display::display_frame(AVFrame *frame)
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 
-
     delete[] buffer;
     sws_freeContext(sws_ctx);
     av_frame_free(&frame_rgb);
@@ -334,7 +349,7 @@ void display::set_display_topmost(){
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
     Display* disp = XOpenDisplay(nullptr);
-    XRaiseWindow(disp, *cam_window);
+    XRaiseWindow(disp, cam_window);
     XCloseDisplay(disp);
 #endif
 }

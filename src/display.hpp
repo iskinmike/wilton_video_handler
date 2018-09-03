@@ -57,7 +57,7 @@ class display
 #ifdef WIN32
     HWND cam_window;
 #else
-    Window* cam_window;
+    Window cam_window;
 #endif
 
     int width;
@@ -90,7 +90,6 @@ public:
     std::string init();
     std::string start_display();
     void stop_display();
-    void pause_encoding();
 
     bool is_initialized() const;
     void display_frame(AVFrame* frame);
