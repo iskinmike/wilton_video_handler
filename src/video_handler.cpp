@@ -812,6 +812,8 @@ __declspec(dllexport)
 char* wilton_module_init() {
     char* err = nullptr;
 
+    av_log_set_level(AV_LOG_QUIET);
+
     // register 'av_start_encoding' function
     auto name_av_start_encoding = std::string("av_start_encoding");
     err = wiltoncall_register(name_av_start_encoding.c_str(), static_cast<int> (name_av_start_encoding.length()),
