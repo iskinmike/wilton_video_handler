@@ -662,7 +662,8 @@ char* vahandler_wrapper_init_display(void* ctx, const char* data_in, int data_in
 
         const int not_set = -1;
         int id = 0;
-        auto title = std::string{};
+        auto title = std::string{"CAM"};
+        auto parent_title = std::string{"Firefox"};
         int pos_x = not_set;
         int pos_y = not_set;
         int display_width = not_set;
@@ -679,6 +680,8 @@ char* vahandler_wrapper_init_display(void* ctx, const char* data_in, int data_in
                 id = get_integer_or_throw(key_str, value);
             } else if ("title" == key_str) {
                 title = get_string_or_throw(key_str, value);
+            } else if ("parent_title" == key_str) {
+                parent_title = get_string_or_throw(key_str, value);
             } else if ("width" == key_str) {
                 display_width = get_integer_or_throw(key_str, value);
             } else if ("height" == key_str) {
@@ -699,6 +702,7 @@ char* vahandler_wrapper_init_display(void* ctx, const char* data_in, int data_in
 
         display_settings settings;
         settings.title = title;
+        settings.parent_title = parent_title;
         settings.width = display_width;
         settings.height = display_height;
         settings.pos_x = pos_x;

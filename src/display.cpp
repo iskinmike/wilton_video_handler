@@ -125,27 +125,34 @@ static std::vector<Window> get_client_array(Display *disp) {
     return client_list;
 }
 
-static void setup_display_topmost(const std::string& title, Window& cam_window){
+static bool get_window_by_title(const std::string& title, Window& result_window){
+    bool result = false;
     Display* disp = XOpenDisplay(nullptr);
     auto tmp_arr = get_client_array(disp);
     XSynchronize(disp, true);
     for (size_t i = 0; i < tmp_arr.size(); ++i){
         std::string tmp(get_property_as_string(disp, tmp_arr[i], XA_STRING, "WM_NAME"));
-        if (!title.compare(tmp)) {
-           cam_window = tmp_arr[i];
-//           std::cout << "Find cam_window: " << cam_window << " | " << tmp_arr[i] << " | disp: " << disp  << std::endl;
-//           XSetWindowAttributes xswa;
-//           xswa.override_redirect=True;
-//           XChangeWindowAttributes(disp, cam_window, CWOverrideRedirect, &xswa);
 
-//           XWindowChanges xwc;
-//           xwc.stack_mode = TopIf;
-           XRaiseWindow(disp, cam_window);
+        if (std::string::npos != tmp.find(title)) {
+           result_window = tmp_arr[i];
+           XSetWindowAttributes xswa;
+           xswa.override_redirect=True;
+           XChangeWindowAttributes(disp, result_window, CWOverrideRedirect, &xswa);
+           XRaiseWindow(disp, result_window);
+           result = true;
            break;
        }
     }
 
     XCloseDisplay(disp);
+    return result;
+}
+
+static int reset_parent_window(Window child, Window new_parent, int pos_x, int pos_y){
+    Display* disp = XOpenDisplay(nullptr);
+    int res = XReparentWindow(disp, child, new_parent, pos_x, pos_y);
+    XCloseDisplay(disp);
+    return res;
 }
 
 #endif
@@ -162,7 +169,6 @@ void display::run_display()
         while (SDL_PollEvent(&event)) {
             if( event.type == SDL_QUIT ) break;
         }
-        set_display_topmost();
     }
     stop_flag.exchange(false);
 }
@@ -198,7 +204,7 @@ std::string display::construct_error(std::string what){
 }
 
 display::display(display_settings set)
-    : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title),
+    : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title), parent_title(set.parent_title),
       init_result("can't init"), initialized(false), width(set.width),
       height(set.height), pos_x(set.pos_x), pos_y(set.pos_y)
 {            
@@ -206,6 +212,7 @@ display::display(display_settings set)
 #ifdef WIN32
 #else
 //    cam_window = nullptr;
+
 #endif
 }
 display::~display() {
@@ -249,7 +256,11 @@ std::string display::init()
 #ifdef WIN32
     setup_display_topmost(title, cam_window);
 #else
-    setup_display_topmost(title, cam_window);
+    get_window_by_title(title, cam_window);
+    Window new_parent;
+    if (get_window_by_title(parent_title, new_parent)) {
+        reset_parent_window(cam_window, new_parent, screen_pos_x, screen_pos_y);
+    }
 #endif
 
     initialized = true;
@@ -355,19 +366,11 @@ void display::set_display_topmost(){
 #ifdef WIN32
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
-    Display* disp = XOpenDisplay(nullptr);
-//    XSynchronize(disp, true);
-//    XMapWindow(disp, cam_window);
-    int res = 0;
+    Display* disp = XOpenDisplay(":0");
 
-//    res = XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
-//    std::cout << "XSetInputFocus: " << res << std::endl;
-    res = XRaiseWindow(disp, cam_window);
-//    std::cout << "XRaiseWindow: " << res << std::endl;
-//    std::cout << "cam_window: " << cam_window << " | disp: " << disp << std::endl;
-
-//    res = XRestackWindows(disp, &cam_window, 1);
-//    std::cout << "XRestackWindows: " << res << std::endl;
+    XRaiseWindow(disp, cam_window);
+    XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
+    XRaiseWindow(disp, cam_window);
 
     XCloseDisplay(disp);
 #endif

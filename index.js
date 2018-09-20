@@ -60,6 +60,7 @@ define([
             var display_settings = {};
             display_settings["id"] = 1;
             display_settings["title"] = "CAM";
+            display_settings["parent_title"] = "Tor Browser";
             display_settings["width"] = 320;
             display_settings["height"] = 240;
             display_settings["pos_x"] = 300;

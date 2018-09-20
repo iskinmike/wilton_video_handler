@@ -43,7 +43,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 }
 
 struct display_settings {
-    std::string title;
+    std::string title, parent_title;
     int width, height;
     int pos_x, pos_y;
 };
@@ -64,6 +64,7 @@ class display
     int height;
     int pos_x, pos_y;
     std::string title;
+    std::string parent_title;
     std::mutex mtx;
 
     std::mutex cond_mtx;
