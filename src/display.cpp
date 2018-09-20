@@ -125,17 +125,19 @@ static std::vector<Window> get_client_array(Display *disp) {
     return client_list;
 }
 
-static void setup_display_topmost(const std::string& title, Window* cam_window){
+static void setup_display_topmost(const std::string& title, Window& cam_window){
     Display* disp = XOpenDisplay(nullptr);
     auto tmp_arr = get_client_array(disp);
-
+    XSynchronize(disp, true);
     for (size_t i = 0; i < tmp_arr.size(); ++i){
         std::string tmp(get_property_as_string(disp, tmp_arr[i], XA_STRING, "WM_NAME"));
         if (!title.compare(tmp)) {
-           (*cam_window) = tmp_arr[i];
-           XSetWindowAttributes xswa;
-           xswa.override_redirect=True;
-           XChangeWindowAttributes(disp, tmp_arr[i], CWOverrideRedirect, &xswa);
+
+           cam_window = tmp_arr[i];
+           std::cout << "Find cam_window: " << cam_window << " | " << tmp_arr[i] << " | disp: " << disp  << std::endl;
+//           XSetWindowAttributes xswa;
+//           xswa.override_redirect=True;
+//           XChangeWindowAttributes(disp, tmp_arr[i], CWOverrideRedirect, &xswa);
            XRaiseWindow(disp, tmp_arr[i]);
            break;
        }
@@ -245,7 +247,7 @@ std::string display::init()
 #ifdef WIN32
     setup_display_topmost(title, cam_window);
 #else
-    setup_display_topmost(title, std::addressof(cam_window));
+    setup_display_topmost(title, cam_window);
 #endif
 
     initialized = true;
@@ -352,7 +354,16 @@ void display::set_display_topmost(){
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
     Display* disp = XOpenDisplay(nullptr);
-    XRaiseWindow(disp, cam_window);
+    XSynchronize(disp, true);
+    XMapWindow(disp, cam_window);
+    auto res = XRaiseWindow(disp, cam_window);
+//    res = XRaiseWindow(disp, cam_window);
+//    res = XRaiseWindow(disp, cam_window);
+//    res = XRaiseWindow(disp, cam_window);
+    std::cout << "XRaiseWindow: " << res << std::endl;
+//    res = XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
+    std::cout << "XSetInputFocus: " << res << std::endl;
+    std::cout << "cam_window: " << cam_window << " | disp: " << disp << std::endl;
     XCloseDisplay(disp);
 #endif
 }

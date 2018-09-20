@@ -71,70 +71,210 @@ define([
             photo_settings["height"] = 480;
             photo_settings["photo_name"] = "photo.png";
 
-            // for (var counter = 0; counter < 10; ++counter) {
-            var decoder_id = wiltoncall("av_init_decoder", decoder_settings);
+            var decoder_id;
+            var encoder_id;
+            var display_id;
+            var start_res;
+            var ph_res;
+
+
+
+        for (var counter = 0; counter < 2; ++counter) {
+            decoder_id = wiltoncall("av_init_decoder", decoder_settings);
             print("av_init_decoder");
-            var encoder_id = wiltoncall("av_init_encoder", encoder_settings);
-            print("av_init_encoder");
-            var display_id = wiltoncall("av_init_display", display_settings);
+            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            // print("av_init_encoder");
+            display_id = wiltoncall("av_init_display", display_settings);
             print("av_init_display");
 
-            wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
-            wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
-            print("av_setup_decoder_to_encoder");
-            var start_res = wiltoncall("av_start_decoding", decoder_id);
-            print("start_res: " + start_res); 
-            start_res = wiltoncall("av_start_encoding", encoder_id);
-            print("start_res: " + start_res); 
-            start_res = wiltoncall("av_start_video_display", display_id);
-            print("start_res: " + start_res); 
-            for (var i = 0; i < 2; ++i) {
-                logger.info("Server is running ...");
-                thread.sleepMillis(1000);
-            }
-            
-            var decoder_id_2 = wiltoncall("av_init_decoder", decoder_settings_2);
-            print("av_init_decoder_2");
-            start_res = wiltoncall("av_start_decoding", decoder_id_2);
-            print("start_res 2: " + start_res);
-            wiltoncall("av_setup_decoder_to_display", {decoder_id: 2, display_id: 1});
-            wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 2, encoder_id: 1});
-            for (var i = 0; i < 2; ++i) {
-                logger.info("Server is running ...");
-                thread.sleepMillis(1000);
-            }
-            var ph_res = wiltoncall("av_make_photo", photo_settings);
-            print(ph_res); 
-            // var flag = wiltoncall("av_is_started", resp);
-            // print("is started: " + flag)
-            // thread.sleepMillis(1000);
 
+            wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
+            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            print("av_setup_decoder_to_encoder");
+            start_res = wiltoncall("av_start_decoding", decoder_id);
+            print("av_start_decoding: " + start_res); 
+            // start_res = wiltoncall("av_start_encoding", encoder_id);
+            // print("start_res: " + start_res); 
+
+
+            start_res = wiltoncall("av_start_video_display", display_id);
+            print("av_start_video_display: " + start_res); 
+            for (var i = 0; i < 2; ++i) {
+                logger.info("Server is running ...");
+                thread.sleepMillis(1000);
+            }
+            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            // print(ph_res);
             wiltoncall("av_stop_video_display", display_id);
-            // wiltoncall("av_stop_video_record", resp);
-            // for (var i = 0; i < 2; ++i) {
-            //     logger.info("Server is prepare to close ...");
-            //     thread.sleepMillis(1000);
-            // }
-            // flag = wiltoncall("av_is_started", resp);
-            // print("is started: " + flag)
+            wiltoncall("av_delete_display", display_id);
+
             wiltoncall("av_stop_decoding", decoder_id);
-            wiltoncall("av_stop_decoding", decoder_id_2);
-            wiltoncall("av_stop_encoding", encoder_id);
+            // wiltoncall("av_stop_encoding", encoder_id);
 
             wiltoncall("av_delete_decoder", decoder_id);
-            wiltoncall("av_delete_decoder", decoder_id_2);
-            wiltoncall("av_delete_encoder", encoder_id);
-            wiltoncall("av_delete_display", display_id);
-            // }
-            // for (var i = 0; i < 2; ++i) {
-            //     logger.info("Server is closed wait ...");
+            // wiltoncall("av_delete_encoder", encoder_id);
+
+
+            // ////////////////////////////////////////
+
+            // thread.sleepMillis(5000);
+
+            //             // for (var counter = 0; counter < 10; ++counter) {
+            // decoder_id = wiltoncall("av_init_decoder", decoder_settings);
+            // print("av_init_decoder");
+            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            // print("av_init_encoder");
+            // display_id = wiltoncall("av_init_display", display_settings);
+            // print("av_init_display");
+
+
+            // wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
+            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            // print("av_setup_decoder_to_encoder");
+            // start_res = wiltoncall("av_start_decoding", decoder_id);
+            // print("av_start_decoding: " + start_res); 
+            // start_res = wiltoncall("av_start_encoding", encoder_id);
+            // print("start_res: " + start_res); 
+
+
+            // start_res = wiltoncall("av_start_video_display", display_id);
+            // print("av_start_video_display: " + start_res); 
+            // for (var i = 0; i < 20; ++i) {
+            //     logger.info("Server is running ...");
             //     thread.sleepMillis(1000);
             // }
-            // flag = wiltoncall("av_is_started", resp);
-            // print("is started: " + flag);
+            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            // print(ph_res);
+            // wiltoncall("av_stop_video_display", display_id);
+            // wiltoncall("av_delete_display", display_id);
 
-            // var json = JSON.parse(flag);
-            // print("is started: " + json.error);            
+            // wiltoncall("av_stop_decoding", decoder_id);
+            // wiltoncall("av_stop_encoding", encoder_id);
+
+            // wiltoncall("av_delete_decoder", decoder_id);
+            // wiltoncall("av_delete_encoder", encoder_id);
+
+
+            //  ////////////////////////////////////////
+
+            // thread.sleepMillis(5000);
+
+            //             // for (var counter = 0; counter < 10; ++counter) {
+            // decoder_id = wiltoncall("av_init_decoder", decoder_settings);
+            // print("av_init_decoder");
+            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            // print("av_init_encoder");
+            // display_id = wiltoncall("av_init_display", display_settings);
+            // print("av_init_display");
+
+
+            // wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
+            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            // print("av_setup_decoder_to_encoder");
+            // start_res = wiltoncall("av_start_decoding", decoder_id);
+            // print("av_start_decoding: " + start_res); 
+            // start_res = wiltoncall("av_start_encoding", encoder_id);
+            // print("start_res: " + start_res); 
+
+
+            // start_res = wiltoncall("av_start_video_display", display_id);
+            // print("av_start_video_display: " + start_res); 
+            // for (var i = 0; i < 20; ++i) {
+            //     logger.info("Server is running ...");
+            //     thread.sleepMillis(1000);
+            // }
+            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            // print(ph_res);
+            // wiltoncall("av_stop_video_display", display_id);
+            // wiltoncall("av_delete_display", display_id);
+
+            // wiltoncall("av_stop_decoding", decoder_id);
+            // wiltoncall("av_stop_encoding", encoder_id);
+
+            // wiltoncall("av_delete_decoder", decoder_id);
+            // wiltoncall("av_delete_encoder", encoder_id);
+
+
+
+            //  ////////////////////////////////////////
+
+            // thread.sleepMillis(5000);
+
+            //             // for (var counter = 0; counter < 10; ++counter) {
+            // decoder_id = wiltoncall("av_init_decoder", decoder_settings);
+            // print("av_init_decoder");
+            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            // print("av_init_encoder");
+            // display_id = wiltoncall("av_init_display", display_settings);
+            // print("av_init_display");
+
+
+            // wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
+            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            // print("av_setup_decoder_to_encoder");
+            // start_res = wiltoncall("av_start_decoding", decoder_id);
+            // print("av_start_decoding: " + start_res); 
+            // start_res = wiltoncall("av_start_encoding", encoder_id);
+            // print("start_res: " + start_res); 
+
+
+            // start_res = wiltoncall("av_start_video_display", display_id);
+            // print("av_start_video_display: " + start_res); 
+            // for (var i = 0; i < 20; ++i) {
+            //     logger.info("Server is running ...");
+            //     thread.sleepMillis(1000);
+            // }
+            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            // print(ph_res);
+            // wiltoncall("av_stop_video_display", display_id);
+            // wiltoncall("av_delete_display", display_id);
+
+            // wiltoncall("av_stop_decoding", decoder_id);
+            // wiltoncall("av_stop_encoding", encoder_id);
+
+            // wiltoncall("av_delete_decoder", decoder_id);
+            // wiltoncall("av_delete_encoder", encoder_id);
+
+
+            //  ////////////////////////////////////////
+
+            // thread.sleepMillis(5000);
+
+            //             // for (var counter = 0; counter < 10; ++counter) {
+            // decoder_id = wiltoncall("av_init_decoder", decoder_settings);
+            // print("av_init_decoder");
+            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            // print("av_init_encoder");
+            // display_id = wiltoncall("av_init_display", display_settings);
+            // print("av_init_display");
+
+
+            // wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
+            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            // print("av_setup_decoder_to_encoder");
+            // start_res = wiltoncall("av_start_decoding", decoder_id);
+            // print("av_start_decoding: " + start_res); 
+            // start_res = wiltoncall("av_start_encoding", encoder_id);
+            // print("start_res: " + start_res); 
+
+
+            // start_res = wiltoncall("av_start_video_display", display_id);
+            // print("av_start_video_display: " + start_res); 
+            // for (var i = 0; i < 20; ++i) {
+            //     logger.info("Server is running ...");
+            //     thread.sleepMillis(1000);
+            // }
+            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            // print(ph_res);
+            // wiltoncall("av_stop_video_display", display_id);
+            // wiltoncall("av_delete_display", display_id);
+
+            // wiltoncall("av_stop_decoding", decoder_id);
+            // wiltoncall("av_stop_encoding", encoder_id);
+
+            // wiltoncall("av_delete_decoder", decoder_id);
+            // wiltoncall("av_delete_encoder", encoder_id);
+        }    
         }
     };
 });
