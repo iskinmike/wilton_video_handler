@@ -132,13 +132,15 @@ static void setup_display_topmost(const std::string& title, Window& cam_window){
     for (size_t i = 0; i < tmp_arr.size(); ++i){
         std::string tmp(get_property_as_string(disp, tmp_arr[i], XA_STRING, "WM_NAME"));
         if (!title.compare(tmp)) {
-
            cam_window = tmp_arr[i];
-           std::cout << "Find cam_window: " << cam_window << " | " << tmp_arr[i] << " | disp: " << disp  << std::endl;
+//           std::cout << "Find cam_window: " << cam_window << " | " << tmp_arr[i] << " | disp: " << disp  << std::endl;
 //           XSetWindowAttributes xswa;
 //           xswa.override_redirect=True;
-//           XChangeWindowAttributes(disp, tmp_arr[i], CWOverrideRedirect, &xswa);
-           XRaiseWindow(disp, tmp_arr[i]);
+//           XChangeWindowAttributes(disp, cam_window, CWOverrideRedirect, &xswa);
+
+//           XWindowChanges xwc;
+//           xwc.stack_mode = TopIf;
+           XRaiseWindow(disp, cam_window);
            break;
        }
     }
@@ -354,16 +356,19 @@ void display::set_display_topmost(){
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
     Display* disp = XOpenDisplay(nullptr);
-    XSynchronize(disp, true);
-    XMapWindow(disp, cam_window);
-    auto res = XRaiseWindow(disp, cam_window);
-//    res = XRaiseWindow(disp, cam_window);
-//    res = XRaiseWindow(disp, cam_window);
-//    res = XRaiseWindow(disp, cam_window);
-    std::cout << "XRaiseWindow: " << res << std::endl;
+//    XSynchronize(disp, true);
+//    XMapWindow(disp, cam_window);
+    int res = 0;
+
 //    res = XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
-    std::cout << "XSetInputFocus: " << res << std::endl;
-    std::cout << "cam_window: " << cam_window << " | disp: " << disp << std::endl;
+//    std::cout << "XSetInputFocus: " << res << std::endl;
+    res = XRaiseWindow(disp, cam_window);
+//    std::cout << "XRaiseWindow: " << res << std::endl;
+//    std::cout << "cam_window: " << cam_window << " | disp: " << disp << std::endl;
+
+//    res = XRestackWindows(disp, &cam_window, 1);
+//    std::cout << "XRestackWindows: " << res << std::endl;
+
     XCloseDisplay(disp);
 #endif
 }
