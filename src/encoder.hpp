@@ -27,14 +27,27 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <atomic>
 #include <iostream>
 #include <vector>
+#include <mutex>
+#include "frame_keeper.hpp"
+
+struct encoder_settings {
+    std::string output_file;
+    int width, height;
+    double framerate;
+    int bit_rate;
+};
 
 class encoder
 {
     AVCodec*         encode_codec;
     AVFormatContext* out_format_ctx;
     AVStream*        out_stream;
-
     std::string      out_file;
+
+    struct SwsContext* sws_ctx;
+    int                num_bytes;
+    uint8_t*           buffer;
+    AVFrame*         frame_out;
 
     int bit_rate;
     double framerate;
@@ -44,25 +57,41 @@ class encoder
     int64_t last_pts;
     AVRational input_time_base;
 
+    uint64_t pts_offset;
+    uint64_t last_time;
+    bool first_run;
+
     FILE *file;
     std::thread encoder_thread;
     void run_encoding();
     std::atomic_bool stop_flag;
+    std::atomic_bool encoding_started;
     bool initialized;
 
+    std::mutex mtx;
+    std::shared_ptr<frame_keeper> keeper;
+
+
+    AVFrame* get_frame_from_keeper();
+    AVRational get_time_base_from_keeper();
+    void rescale_frame(AVFrame* frame);
+    std::string construct_error(std::string what);
 public:
-  encoder(std::string out);
+  explicit encoder(encoder_settings set);
   ~encoder();
 
-  std::string init(int bit_rate, int width, int height, double framerate, int time_base_den, int time_base_num);
-  void start_encoding();
+  std::string init();
+  std::string start_encoding();
   void stop_encoding();
+  void pause_encoding();
 
   int encode_frame(AVFrame* frame);
 
   void close_file();
   void fflush_encoder();
   bool is_initialized() const;
+
+  void setup_frame_keeper(std::shared_ptr<frame_keeper> keeper);
 };
 
 

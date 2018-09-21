@@ -24,6 +24,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <chrono>
+#include "frame_keeper.hpp"
 
 #ifdef WIN32
 #include <windows.h>
@@ -41,6 +42,12 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <libswscale/swscale.h>
 }
 
+struct display_settings {
+    std::string title, parent_title;
+    int width, height;
+    int pos_x, pos_y;
+};
+
 class display
 {
     SDL_Renderer* renderer;
@@ -50,12 +57,15 @@ class display
 #ifdef WIN32
     HWND cam_window;
 #else
-    Window* cam_window;
+    Window cam_window;
 #endif
 
     int width;
     int height;
+    int pos_x, pos_y;
     std::string title;
+    std::string parent_title;
+    std::mutex mtx;
 
     std::mutex cond_mtx;
     struct sync_waiter {
@@ -70,18 +80,24 @@ class display
     void send_result(std::string result);
     std::atomic_bool stop_flag;
     bool initialized;
+
+    std::shared_ptr<frame_keeper> keeper;
+    AVFrame *get_frame_from_keeper();
+    std::string construct_error(std::string what);
 public:
-    display(const std::string& title);
+    display(display_settings set);
     ~display();
 
-    std::string init(int pos_x, int pos_y, int width, int height);
-    std::string start_display(int pos_x, int pos_y, int width, int height);
+    std::string init();
+    std::string start_display();
     void stop_display();
 
     bool is_initialized() const;
     void display_frame(AVFrame* frame);
 
     void set_display_topmost();
+    void setup_frame_keeper(std::shared_ptr<frame_keeper> keeper);
+
 };
 
 

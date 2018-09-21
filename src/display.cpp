@@ -3,6 +3,7 @@
 #include "frame_keeper.hpp"
 
 #include <iostream>
+#include <map>
 
 //#include
 namespace {
@@ -48,16 +49,49 @@ void setup_display_topmost(const std::string& title, HWND& cam_window){
 }
 
 #else
-static char *get_property (Display *disp, Window win,
-        Atom xa_prop_type, const char *prop_name, unsigned long *size) {
+
+std::vector<Window> get_property_as_window(Display *disp, Window win,
+        Atom xa_prop_type, const char *prop_name) {
     Atom xa_prop_name;
     Atom xa_ret_type;
     int ret_format;
     unsigned long ret_nitems;
     unsigned long ret_bytes_after;
-    unsigned long tmp_size;
+    unsigned char* ret_prop = nullptr;
+    unsigned char** ret_prop_ptr = &ret_prop;
+    std::vector<Window> ret;
+
+    xa_prop_name = XInternAtom(disp, prop_name, False);
+
+    /* MAX_PROPERTY_VALUE_LEN / 4 explanation (XGcd etWindowProperty manpage):
+     *
+     * long_length = Specifies the length in 32-bit multiples of the
+     *               data to be retrieved.
+     */
+    XGetWindowProperty(disp, win, xa_prop_name, 0, MAX_PROPERTY_VALUE_LEN / 4, False,
+            xa_prop_type, &xa_ret_type, &ret_format,
+            &ret_nitems, &ret_bytes_after, ret_prop_ptr);
+
+    for (size_t i = 0; i < ret_nitems; ++i) {
+        if (nullptr != ret_prop) {
+            Window* tmp_ptr = static_cast<Window*>(static_cast<void*>(ret_prop + i*sizeof(unsigned char*)));
+            ret.push_back(*tmp_ptr);
+        }
+    }
+
+    XFree(ret_prop);
+    return ret;
+}
+
+std::string get_property_as_string(Display *disp, Window win,
+        Atom xa_prop_type, const char *prop_name) {
+    Atom xa_prop_name;
+    Atom xa_ret_type;
+    int ret_format;
+    unsigned long ret_nitems;
+    unsigned long ret_bytes_after;
     unsigned char *ret_prop;
-    char *ret;
+    std::string ret;
 
     xa_prop_name = XInternAtom(disp, prop_name, False);
 
@@ -70,55 +104,55 @@ static char *get_property (Display *disp, Window win,
             xa_prop_type, &xa_ret_type, &ret_format,
             &ret_nitems, &ret_bytes_after, &ret_prop);
 
-    /* null terminate the result to make string handling easier */
-    tmp_size = (ret_format / (32 / sizeof(long))) * ret_nitems;
-    ret = (char*) malloc(tmp_size + 1);
-    memcpy(ret, ret_prop, tmp_size);
-    ret[tmp_size] = '\0';
-
-    if (size) {
-        *size = tmp_size;
-    }
+    char* ret_ptr = static_cast<char*>(static_cast<void*>(ret_prop));
+    ret.assign(ret_ptr, ret_nitems);
 
     XFree(ret_prop);
     return ret;
 }
 
+static std::vector<Window> get_client_array(Display *disp) {
+    std::vector<Window> client_list;
 
-static Window *get_client_list (Display *disp, unsigned long *size) {
-    Window *client_list;
+    client_list = get_property_as_window(disp, DefaultRootWindow(disp),
+                        XA_WINDOW, "_NET_CLIENT_LIST");
 
-    if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
-                    XA_WINDOW, "_NET_CLIENT_LIST", size)) == NULL) {
-        if ((client_list = (Window *)get_property(disp, DefaultRootWindow(disp),
-                        XA_CARDINAL, "_WIN_CLIENT_LIST", size)) == NULL) {
-            return NULL;
-        }
+    if (!client_list.size()) {
+        client_list = get_property_as_window(disp, DefaultRootWindow(disp),
+                                XA_CARDINAL, "_WIN_CLIENT_LIST");
     }
 
     return client_list;
 }
 
-static void setup_display_topmost(const std::string& title, Window** cam_window){
+static bool get_window_by_title(const std::string& title, Window& result_window){
+    bool result = false;
     Display* disp = XOpenDisplay(nullptr);
-    Window *client_list;
-    unsigned long client_list_size;
+    auto tmp_arr = get_client_array(disp);
+    XSynchronize(disp, true);
+    for (size_t i = 0; i < tmp_arr.size(); ++i){
+        std::string tmp(get_property_as_string(disp, tmp_arr[i], XA_STRING, "WM_NAME"));
 
-    client_list = get_client_list(disp, &client_list_size);
-
-    for (unsigned long i = 0; i < client_list_size; i++) {
-        Window *win = &client_list[i];
-        if (nullptr == win) {
-            continue;
-        }
-        std::string tmp(get_property(disp, client_list[i], XA_STRING, "WM_NAME", NULL));
-        if (!title.compare(tmp)) {
-            (*cam_window) = win;
-            XRaiseWindow(disp, *win);
-            break;
-        }
+        if (std::string::npos != tmp.find(title)) {
+           result_window = tmp_arr[i];
+           XSetWindowAttributes xswa;
+           xswa.override_redirect=True;
+           XChangeWindowAttributes(disp, result_window, CWOverrideRedirect, &xswa);
+           XRaiseWindow(disp, result_window);
+           result = true;
+           break;
+       }
     }
+
     XCloseDisplay(disp);
+    return result;
+}
+
+static int reset_parent_window(Window child, Window new_parent, int pos_x, int pos_y){
+    Display* disp = XOpenDisplay(nullptr);
+    int res = XReparentWindow(disp, child, new_parent, pos_x, pos_y);
+    XCloseDisplay(disp);
+    return res;
 }
 
 #endif
@@ -127,22 +161,16 @@ static void setup_display_topmost(const std::string& title, Window** cam_window)
 
 void display::run_display()
 {
-    frame_keeper& fk = frame_keeper::instance();
     while (!stop_flag) {
-        AVFrame *tmp_frame = fk.get_current_frame();
+        AVFrame *tmp_frame = get_frame_from_keeper();
         display_frame(tmp_frame);
         av_frame_free(&tmp_frame);
         SDL_Event event;
-        set_display_topmost();
         while (SDL_PollEvent(&event)) {
             if( event.type == SDL_QUIT ) break;
         }
     }
     stop_flag.exchange(false);
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(screen);
-    SDL_Quit();
 }
 
 std::string display::wait_result(){
@@ -163,31 +191,42 @@ void display::send_result(std::string result) {
     sync_point.cond.notify_all();
 }
 
-display::display(const std::string& title)
-    : renderer(nullptr), screen(nullptr), texture(nullptr), title(title),
-      init_result("can't init"), initialized(false) 
+AVFrame *display::get_frame_from_keeper() {
+    std::lock_guard<std::mutex> guard(mtx);
+    return keeper->get_frame();
+}
+
+std::string display::construct_error(std::string what){
+    std::string error("{ \"error\": \"");
+    error += what;
+    error += "\"}";
+    return error;
+}
+
+display::display(display_settings set)
+    : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title), parent_title(set.parent_title),
+      init_result("can't init"), initialized(false), width(set.width),
+      height(set.height), pos_x(set.pos_x), pos_y(set.pos_y)
 {            
     stop_flag.exchange(false);
 #ifdef WIN32
 #else
-    cam_window = nullptr;
+//    cam_window = nullptr;
+
 #endif
 }
 display::~display() {
     stop_display();
 }
 
-std::string display::init(int pos_x, int pos_y, int width, int height)
+std::string display::init()
 {
-    this->width = width;
-    this->height = height;
-
     const int default_screen_pos = 100;
     int screen_pos_x = (-1 != pos_x) ? pos_x : default_screen_pos ;
     int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
 
     if(SDL_Init(SDL_INIT_VIDEO)) {
-      return std::string("Could not initialize SDL - ") + std::string(SDL_GetError());
+        return construct_error("Could not initialize SDL - " + std::string(SDL_GetError()));
     }
 
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
@@ -195,14 +234,14 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
 
     if(!screen) {
         SDL_Quit();
-        return std::string("SDL: could not set video mode - exiting");
+        return construct_error("SDL: could not set video mode - exiting");
     }
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
         SDL_DestroyWindow(screen);
         SDL_Quit();
-        return std::string("SDL: could not create renderer - exiting");
+        return construct_error("SDL: could not create renderer - exiting");
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
@@ -211,32 +250,43 @@ std::string display::init(int pos_x, int pos_y, int width, int height)
         SDL_DestroyWindow(screen);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
-        return std::string("SDL: could not create texture - exiting");
+        return construct_error("SDL: could not create texture - exiting");
     }
 
 #ifdef WIN32
     setup_display_topmost(title, cam_window);
 #else
-    setup_display_topmost(title, std::addressof(cam_window));
+    get_window_by_title(title, cam_window);
+    Window new_parent;
+    if (get_window_by_title(parent_title, new_parent)) {
+        reset_parent_window(cam_window, new_parent, screen_pos_x, screen_pos_y);
+    }
 #endif
 
     initialized = true;
     return std::string{};
 }
 
-std::string display::start_display(int pos_x, int pos_y, int width, int height)
+std::string display::start_display()
 {
-    display_thread = std::thread([this, pos_x, pos_y, width, height] {
-        send_result(init(pos_x, pos_y, width, height));
-        this->run_display();
-    });
-    return wait_result();
+    if (keeper){
+        display_thread = std::thread([this] {
+            send_result(init());
+            this->run_display();
+        });
+        return wait_result();
+    }
+    return std::string{"{ \"error\": \"Decoder not setted\"}"};
 }
 
 void display::stop_display()
 {
     stop_flag.exchange(true);
     if (display_thread.joinable()) display_thread.join();
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(screen);
+    SDL_Quit();
 }
 
 bool display::is_initialized() const {
@@ -307,7 +357,6 @@ void display::display_frame(AVFrame *frame)
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 
-
     delete[] buffer;
     sws_freeContext(sws_ctx);
     av_frame_free(&frame_rgb);
@@ -317,8 +366,17 @@ void display::set_display_topmost(){
 #ifdef WIN32
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
-    Display* disp = XOpenDisplay(nullptr);
-    XRaiseWindow(disp, *cam_window);
+    Display* disp = XOpenDisplay(":0");
+
+    XRaiseWindow(disp, cam_window);
+    XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
+    XRaiseWindow(disp, cam_window);
+
     XCloseDisplay(disp);
 #endif
+}
+
+void display::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
+    std::lock_guard<std::mutex> guard(mtx);
+    this->keeper = keeper;
 }
