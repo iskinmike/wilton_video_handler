@@ -1,6 +1,6 @@
 C++ module wilton_video_handler
 ------------------
-
+For all builds:<br>
 `WILTON_HOME` environment variable must be set to the Wilton dist directory.<br>
 For windows build: <br>
 `FFMPEG_DEV_DIR` environment variable must be set to the FFMpeg dev directory, contained "/include" and "/lib" dirs.<br>
@@ -13,7 +13,7 @@ Install libraries for Ubuntu:
 
 Install libraries for CentOs7:
 ```
- sudo yum install ffmpeg-devel-2.6.8-3.el7.nux.x86_64 SDL2-devel-2.0.3-9.el7.x86_64
+ sudo yum install ffmpeg-devel.x86_64 SDL2-devel.x86_64
 ```
 
 Module is dependent of jansson library. This library(2.11 version) included as submodule.
@@ -34,7 +34,7 @@ Build and run on Windows:
     git submodule update --init
     mkdir build
     cd build
-    cmake .. -G "Visual Studio 1x 201x Win64" # example "Visual Studio 14 2015 Win64"
+    cmake .. -G "Visual Studio 12 2013 Win64" # example "Visual Studio 14 2015 Win64"
     cmake --build . --config Release
     cd dist
     bin\wilton.exe index.js
@@ -77,8 +77,8 @@ decoder_settings:
 ```JavaScript
 {
   "id" : 1,                   // You may setup id manually. Optional. Default value 0;
-  "in" : "/dev/video0",       // Name of input device. required
-  "fmt" : "video4linux2",     // Name of input ffmpeg format. required
+  "in" : "/dev/video0",       // Name of input device. Required
+  "fmt" : "video4linux2",     // Name of input ffmpeg format. Required
   // time base determined as numerator/denumerator.
   "time_base_den" : 1000000   // Optional. Setup camera time base denumerator. Standart value for Linux: 1000000
   "time_base_num" : 1         // Optional. Setup camera time base numerator. Standart value: 1
@@ -88,7 +88,7 @@ encoder_settings:
 ```JavaScript
 {
   "id" : 1,                   // You may setup id manually. Optional. Default value 0;
-  "out" : "out.mp4",          // Name of output file. required  
+  "out" : "out.mp4",          // Name of output file. Required  
   "width" = 480;              // Width of video file. Optional. Default: width of captured device image
   "height" = 320;             // Height of video file. Optional. Default: height of captured device image
   "bit_rate" : 150000,        // Optional. Default: device bitrate
@@ -99,12 +99,13 @@ display_settings:
 ```JavaScript
 {
   "id" : 1,                   // You may setup id manually. Optional. Default value 0;
-  "title" : "CAM",            // Name of created display. required           
+  "title" : "CAM",            // Name of created display. Required           
+  "parent_title" : "Firefox", // Name of runned process window to append created display. Optional           
   "width" = 320;              // Width of display file. Optional. Default: width of captured device image
   "height" = 400;             // Height of display file. Optional. Default: height of captured device image
   // pixel pos of left top corner of created display
-  "pos_x" : 300,              // Optional. Position X of created window. Default: 100
-  "pos_y" : 300               // Optional. Position Y of created window. Default: 100
+  "pos_x" : 300,              // Optional. Position X of created window relative to connected parent window. Default: 100
+  "pos_y" : 300               // Optional. Position Y of created window relative to connected parent window. Default: 100
 }
 ```
 photo_settings: 
@@ -126,8 +127,8 @@ On windows HP cam you may try options
 Changes for windows:
 ```JavaScript
 {
-  "in" : "video=HP Webcam"; // Name of input device. required
-  "fmt" : "dshow";          // Name of input ffmpeg format. required
+  "in" : "video=HP Webcam"; // Name of input device. Required
+  "fmt" : "dshow";          // Name of input ffmpeg format. Required
 }
 ```
 Camera name may be found at windows device manager or through ffmpeg.
@@ -139,10 +140,10 @@ A more detailed example in **index.js**
 
 Errors returned as stringify JSON with error property.
 
-For example, if video handler with **id** doesn't exists function return errror message in json string:
+For example, if display, decoder or encoder handler with **id** doesn't exists function return errror message in json string:
 
 ```JavaScript
 { 
-  "error": "Wrong id [$id]"
+  "error": "Wrong display/decoder/encoder id [$id]"
 }
 ``` 
