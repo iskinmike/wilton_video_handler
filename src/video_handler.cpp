@@ -270,7 +270,7 @@ char* vahandler_wrapper_setup_decoder_to(void* ctx, const char* data_in, int dat
             key_name = "display_id";
             destination_name = "Display";
         } else if (std::is_same<T, encoder>::value){
-            key_name = "encodery_id";
+            key_name = "encoder_id";
             destination_name = "Encoder";
         } else {
             throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_setup_decoder_to]");
