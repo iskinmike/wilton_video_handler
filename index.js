@@ -41,6 +41,7 @@ define([
             // decoder_settings["fmt"] = "dshow";           // windows
             decoder_settings["time_base_den"] = 1000000;
             decoder_settings["time_base_num"] = 1;
+            decoder_settings["loggerSettings"] = {"path" : "/home/mike/workspace/tmp.log"};
 
             var decoder_settings_2 = {};
             decoder_settings_2["id"] = 2;
@@ -80,23 +81,22 @@ define([
 
 
 
-        for (var counter = 0; counter < 2; ++counter) {
+        for (var counter = 0; counter < 1; ++counter) {
             decoder_id = wiltoncall("av_init_decoder", decoder_settings);
             print("av_init_decoder");
-            // encoder_id = wiltoncall("av_init_encoder", encoder_settings);
-            // print("av_init_encoder");
+            encoder_id = wiltoncall("av_init_encoder", encoder_settings);
+            print("av_init_encoder");
             display_id = wiltoncall("av_init_display", display_settings);
             print("av_init_display");
 
 
             wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
-            // wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
+            wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
             print("av_setup_decoder_to_encoder");
             start_res = wiltoncall("av_start_decoding", decoder_id);
             print("av_start_decoding: " + start_res); 
-            // start_res = wiltoncall("av_start_encoding", encoder_id);
-            // print("start_res: " + start_res); 
-
+            start_res = wiltoncall("av_start_encoding", encoder_id);
+            print("start_res: " + start_res); 
 
             start_res = wiltoncall("av_start_video_display", display_id);
             print("av_start_video_display: " + start_res); 
@@ -110,7 +110,7 @@ define([
             wiltoncall("av_delete_display", display_id);
 
             wiltoncall("av_stop_decoding", decoder_id);
-            // wiltoncall("av_stop_encoding", encoder_id);
+            wiltoncall("av_stop_encoding", encoder_id);
 
             wiltoncall("av_delete_decoder", decoder_id);
             // wiltoncall("av_delete_encoder", encoder_id);

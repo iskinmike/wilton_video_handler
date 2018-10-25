@@ -117,6 +117,10 @@ void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
     }
 }
 
+std::string encoder::get_out_file(){
+    return out_file;
+}
+
 encoder::encoder(encoder_settings set)
     : encode_codec(NULL), out_file(set.output_file), initialized(false),
       out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1), last_time(0),
@@ -199,7 +203,7 @@ std::string encoder::init()
      * pOutStream->time_base not equal to pOutStream->codec->time_base after that call */
     out_stream->time_base = out_stream->codec->time_base;
 
-//    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);

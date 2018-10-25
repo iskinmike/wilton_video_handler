@@ -27,7 +27,6 @@
 #include <memory>
 #include <map>
 #include <type_traits>
-//#include "wilton/support/exception.hpp"
 
 #include "wilton/wiltoncall.h"
 #include "decoder.hpp"
@@ -35,6 +34,7 @@
 #include "display.hpp"
 #include "photo.hpp"
 #include "frame_keeper.hpp"
+#include "video_logger.hpp"
 
 #include "jansson.h"
 
@@ -44,6 +44,7 @@ namespace { //anonymous
 std::map<int,std::shared_ptr<encoder>> encoders;
 std::map<int,std::shared_ptr<decoder>> decoders;
 std::map<int,std::shared_ptr<display>> displays;
+//video_logger logger;
 int get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
         return static_cast<int>(json_integer_value(value));
@@ -74,6 +75,10 @@ std::string av_delete_encoder(int id){
 int av_init_decoder(int id, decoder_settings set){
     if (decoders.count(id)){
         decoders.erase(id);
+    }
+    if (!decoders.size()) {
+        video_logger& logger = video_logger::instance();
+        logger.setup_callback_function();
     }
     decoders[id] =
             std::shared_ptr<decoder> (new decoder(set));
@@ -113,6 +118,9 @@ std::string av_start_encoding(int id){
 }
 std::string av_stop_encoding(int id){
     encoders[id]->stop_encoding();
+    video_logger& logger = video_logger::instance();
+    logger.copy_logfile_to(encoders[id]->get_out_file());
+    logger.drop_callback_function();
     return std::string{};
 }
 // decoder functions. Occupies a video device and start to decode frames to memory
@@ -404,6 +412,7 @@ char* vahandler_wrapper_init_encoder(void* ctx, const char* data_in, int data_in
         settings.bit_rate = bit_rate;
         settings.framerate = framerate;
 
+
         std::string output = std::to_string(fun(id, settings));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
@@ -451,6 +460,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         const char *key = nullptr;
         json_t *value = nullptr;
 
+        // logger
+        auto logger_tmp_file = std::string{};
+
         json_object_foreach(root, key, value) {
             auto key_str = std::string{key};
             if ("id" == key_str) {
@@ -463,6 +475,20 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
                 time_base_den = get_integer_or_throw(key_str, value);
             } else if ("time_base_num" == key_str) {
                 time_base_num = get_integer_or_throw(key_str, value);
+            } else if ("loggerSettings" == key_str) {
+                if (json_is_object(value)) {
+                    json_t *subobject = nullptr;
+                    const char *subobject_key = nullptr;
+                    json_object_foreach(value, subobject_key, subobject){
+                        auto subobject_key_str = std::string{subobject_key};
+                        if ("path" == subobject_key_str) {
+                            logger_tmp_file = get_string_or_throw(subobject_key_str, subobject);
+                        } else {
+                            std::string err_msg = std::string{"Unknown data field: [loggerSettings]["} + subobject_key_str + "]";
+                            throw std::invalid_argument(err_msg);
+                        }
+                    }
+                }
             } else {
                 std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
                 throw std::invalid_argument(err_msg);
@@ -481,6 +507,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         settings.time_base_den = time_base_den;
         settings.time_base_num = time_base_num;
 
+        if (!logger_tmp_file.empty()) {
+            video_logger::instance().setup_tmp_file(logger_tmp_file);
+        }
 
         std::string output = std::to_string(fun(id, settings));
         if (!output.empty()) {
