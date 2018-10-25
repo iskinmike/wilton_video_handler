@@ -74,27 +74,30 @@ define([
             photo_settings["photo_name"] = "photo.png";
 
             var decoder_id;
+            var decoder_id_2;
             var encoder_id;
             var display_id;
             var start_res;
             var ph_res;
 
 
-
         for (var counter = 0; counter < 1; ++counter) {
             decoder_id = wiltoncall("av_init_decoder", decoder_settings);
             print("av_init_decoder");
+            decoder_id_2 = wiltoncall("av_init_decoder", decoder_settings_2);
+            print("av_init_decoder_2");
             encoder_id = wiltoncall("av_init_encoder", encoder_settings);
             print("av_init_encoder");
             display_id = wiltoncall("av_init_display", display_settings);
             print("av_init_display");
-
 
             wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
             wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
             print("av_setup_decoder_to_encoder");
             start_res = wiltoncall("av_start_decoding", decoder_id);
             print("av_start_decoding: " + start_res); 
+            start_res = wiltoncall("av_start_decoding", decoder_id_2);
+            print("av_start_decoding 2: " + start_res); 
             start_res = wiltoncall("av_start_encoding", encoder_id);
             print("start_res: " + start_res); 
 
@@ -110,9 +113,11 @@ define([
             wiltoncall("av_delete_display", display_id);
 
             wiltoncall("av_stop_decoding", decoder_id);
+            wiltoncall("av_stop_decoding", decoder_id_2);
             wiltoncall("av_stop_encoding", encoder_id);
 
             wiltoncall("av_delete_decoder", decoder_id);
+            wiltoncall("av_delete_decoder", decoder_id_2);
             // wiltoncall("av_delete_encoder", encoder_id);
 
 

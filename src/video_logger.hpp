@@ -72,13 +72,15 @@ void set_calback_logger(){
 
 class video_logger
 {	
-    video_logger(){}
+    video_logger(): tmp_log_file{}, started(false){}
     ~video_logger(){
         drop_callback_function();
     }
     video_logger(video_logger const&) = delete;
     video_logger& operator= (video_logger const&) = delete;
     std::string tmp_log_file;
+
+    bool started;
 public:
     static video_logger& instance()
     {
@@ -112,8 +114,9 @@ public:
 	void setup_callback_function(){
         if (!tmp_log_file.size()) return;
         std::lock_guard<std::mutex> lock(mtx);
-        av_log_set_level(AV_LOG_TRACE);
+        av_log_set_level(AV_LOG_DEBUG);
         av_log_set_callback(cb_logger);
+        started = true;
 	}
 
     void setup_tmp_file(const std::string& tmp_file_path) {
@@ -173,7 +176,11 @@ public:
         av_log_set_callback(av_log_default_callback);
         av_log_set_level(AV_LOG_QUIET);
         clear_logfile();
+        started = false;
 	}
+    bool is_started(){
+        return started;
+    }
 };
 
 namespace {

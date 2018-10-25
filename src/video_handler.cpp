@@ -76,10 +76,6 @@ int av_init_decoder(int id, decoder_settings set){
     if (decoders.count(id)){
         decoders.erase(id);
     }
-    if (!decoders.size()) {
-        video_logger& logger = video_logger::instance();
-        logger.setup_callback_function();
-    }
     decoders[id] =
             std::shared_ptr<decoder> (new decoder(set));
     return id;
@@ -508,7 +504,11 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         settings.time_base_num = time_base_num;
 
         if (!logger_tmp_file.empty()) {
-            video_logger::instance().setup_tmp_file(logger_tmp_file);
+            video_logger& logger = video_logger::instance();
+            if (!logger.is_started()) {
+                logger.setup_tmp_file(logger_tmp_file);
+                logger.setup_callback_function();
+            }
         }
 
         std::string output = std::to_string(fun(id, settings));
