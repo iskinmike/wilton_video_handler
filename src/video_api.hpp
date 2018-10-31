@@ -20,6 +20,7 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 #include "display.hpp"
+#include "recognizer.hpp"
 #include "photo.hpp"
 #include <iostream>
 #include <memory>
@@ -33,7 +34,15 @@ struct video_settings{
     int display_width, display_height;
     int video_width, video_height;
     int photo_width, photo_height;
+<<<<<<< HEAD
     int time_base_den, time_base_num;
+=======
+
+    // for face recognition
+    int recognizer_port;
+    std::string recognizer_ip, face_cascade_path;
+    int64_t wait_time_ms;
+>>>>>>> f1962d24466fc5a739426bf31dad9a395d88a8d9
 };
 
 class video_api
@@ -41,6 +50,7 @@ class video_api
     std::shared_ptr<decoder> api_decoder;
     std::shared_ptr<encoder> api_encoder;
     std::shared_ptr<display> api_display;
+    std::shared_ptr<recognizer> api_recognizer;
 
     // settings
     video_settings settings;
@@ -71,7 +81,11 @@ public:
     bool get_start_flag() const;
     bool get_decoder_flag() const;
     bool get_encoder_flag() const;
+    bool get_recognizing_flag() const;
     bool get_display_flag() const;
+
+    std::string start_recognizing();
+    void stop_recognizing();
 };
 
 #endif  /* VIDEO_API_HPP */

@@ -1,5 +1,6 @@
 
 #include "encoder.hpp"
+#include "utils.hpp"
 
 #include <iostream>
 #include <cmath>
@@ -91,13 +92,6 @@ void encoder::rescale_frame(AVFrame *frame){
     sws_freeContext(sws_ctx);
 }
 
-std::string encoder::construct_error(std::string what){
-    std::string error("{ \"error\": \"");
-    error += what;
-    error += "\"}";
-    return error;
-}
-
 bool encoder::is_initialized() const
 {
     return initialized;
@@ -134,8 +128,8 @@ encoder::~encoder()
         avformat_flush(out_format_ctx);
         // automatically set pOutFormatCtx to NULL and frees all its allocated data
         avformat_free_context(out_format_ctx);
-//        av_frame_free(&frame_out);
-//        delete[] buffer;
+        av_frame_free(&frame_out);
+        delete[] buffer;
     }
 }
 
@@ -152,16 +146,16 @@ std::string encoder::init()
     if (0 > ret) {
         ret = avformat_alloc_output_context2(&out_format_ctx, NULL, "avi", NULL);
     }
-    if (0 > ret) return construct_error("Could not allocate output_context");
+    if (0 > ret) return utils::construct_error("Could not allocate output_context");
 
 
     // find encoder codec
     encode_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
 //    encode_codec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
-    if (!encode_codec) return construct_error("Codec not found");
+    if (!encode_codec) return utils::construct_error("Codec not found");
 
     out_stream = avformat_new_stream(out_format_ctx, encode_codec);
-    if (!out_stream) return construct_error("Could not allocate stream");
+    if (!out_stream) return utils::construct_error("Could not allocate stream");
 
     const int half_divider = 2;
     // set Context settings
@@ -188,7 +182,7 @@ std::string encoder::init()
 
     // need open codec
     if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
-        return construct_error("Can't open codec to encode");
+        return utils::construct_error("Can't open codec to encode");
     }
 
     /* timebase: This is the fundamental unit of time (in seconds) in terms
@@ -204,7 +198,7 @@ std::string encoder::init()
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
     if (0 > ret) {
-        return construct_error("Could not open " + out_file);
+        return utils::construct_error("Could not open " + out_file);
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);

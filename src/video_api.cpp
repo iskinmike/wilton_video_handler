@@ -16,6 +16,11 @@ bool video_api::get_encoder_flag() const
     return encoder_start_flag;
 }
 
+bool video_api::get_recognizing_flag() const
+{
+    return api_recognizer->is_recognizing();
+}
+
 bool video_api::get_display_flag() const
 {
     return display_start_flag;
@@ -29,6 +34,7 @@ video_api::video_api(video_settings set) : start_flag(false),
             set.video_width, set.video_height, set.bit_rate));
     api_encoder = std::shared_ptr<encoder> (new encoder(set.output_file));
     api_display = std::shared_ptr<display> (new display(set.title));
+    api_recognizer = std::shared_ptr<recognizer> (new recognizer(set.recognizer_ip, set.recognizer_port, set.face_cascade_path, set.wait_time_ms));
 }
 
 std::string video_api::start_video_record()
@@ -59,6 +65,16 @@ std::string video_api::start_video_display()
         if (result.empty()) display_start_flag = true;
     }
     return result;
+}
+
+// recognizer
+std::string video_api::start_recognizing()
+{
+    return api_recognizer->run_recognizer_display();
+}
+void video_api::stop_recognizing()
+{
+    api_recognizer->stop_cheking_display();
 }
 
 std::string video_api::init_encoder() {

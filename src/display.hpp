@@ -83,7 +83,6 @@ class display
 
     std::shared_ptr<frame_keeper> keeper;
     AVFrame *get_frame_from_keeper();
-    std::string construct_error(std::string what);
 public:
     display(display_settings set);
     ~display();

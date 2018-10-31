@@ -1,6 +1,7 @@
 
 #include "display.hpp"
 #include "frame_keeper.hpp"
+#include "utils.hpp"
 
 #include <iostream>
 #include <map>
@@ -196,24 +197,12 @@ AVFrame *display::get_frame_from_keeper() {
     return keeper->get_frame();
 }
 
-std::string display::construct_error(std::string what){
-    std::string error("{ \"error\": \"");
-    error += what;
-    error += "\"}";
-    return error;
-}
-
 display::display(display_settings set)
     : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title), parent_title(set.parent_title),
       init_result("can't init"), initialized(false), width(set.width),
       height(set.height), pos_x(set.pos_x), pos_y(set.pos_y)
 {            
     stop_flag.exchange(false);
-#ifdef WIN32
-#else
-//    cam_window = nullptr;
-
-#endif
 }
 display::~display() {
     stop_display();
@@ -226,31 +215,28 @@ std::string display::init()
     int screen_pos_y = (-1 != pos_y) ? pos_y : default_screen_pos ;
 
     if(SDL_Init(SDL_INIT_VIDEO)) {
-        return construct_error("Could not initialize SDL - " + std::string(SDL_GetError()));
+        return utils::construct_error("Could not initialize SDL - " + std::string(SDL_GetError()));
     }
-
     screen = SDL_CreateWindow(title.c_str(), screen_pos_x, screen_pos_y, width, height,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-
     if(!screen) {
         SDL_Quit();
-        return construct_error("SDL: could not set video mode - exiting");
+        return utils::construct_error("SDL: could not set video mode - exiting");
     }
 
     renderer = SDL_CreateRenderer(screen, -1, 0);
     if (!renderer) {
         SDL_DestroyWindow(screen);
         SDL_Quit();
-        return construct_error("SDL: could not create renderer - exiting");
+        return utils::construct_error("SDL: could not create renderer - exiting");
     }
-
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
                             SDL_TEXTUREACCESS_STATIC, width, height);
     if (!texture) {
         SDL_DestroyWindow(screen);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
-        return construct_error("SDL: could not create texture - exiting");
+        return utils::construct_error("SDL: could not create texture - exiting");
     }
 
 #ifdef WIN32
@@ -276,7 +262,7 @@ std::string display::start_display()
         });
         return wait_result();
     }
-    return std::string{"{ \"error\": \"Decoder not setted\"}"};
+    return utils::construct_error("Decoder not setted");
 }
 
 void display::stop_display()
@@ -311,7 +297,7 @@ void display::display_frame(AVFrame *frame)
         this->width,
         this->height,
         new_format,
-        SWS_BILINEAR,
+        SWS_FAST_BILINEAR,
         NULL,
         NULL,
         NULL

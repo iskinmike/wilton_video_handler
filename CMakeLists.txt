@@ -41,22 +41,30 @@ add_subdirectory(jansson)
 
 set(SOURCES
     src/frame_keeper.cpp
+    src/recognizer.cpp
     src/decoder.cpp
     src/encoder.cpp
     src/display.cpp
     src/photo.cpp
+    src/utils.cpp
     src/video_handler.cpp)
 
+set ( LIBPATH  "/usr/local/lib" )
+
 set(LIBS 
-  avformat
-  avcodec
-  swscale
-  avdevice
-  swresample
-  avutil
-  SDL2
-  pthread
-  jansson
+    avformat
+    avcodec
+    swscale
+    avdevice
+    swresample
+    avutil
+    SDL2
+    pthread
+    jansson
+    ${LIBPATH}/libopencv_core.so
+    ${LIBPATH}/libopencv_imgproc.so
+    ${LIBPATH}/libopencv_objdetect.so
+    ${LIBPATH}/libopencv_highgui.so
 )
 
 if ( WIN32 )
@@ -94,7 +102,7 @@ endif ( )
 add_library ( ${PROJECT_NAME} SHARED
         ${SOURCES} )
 
-target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
+target_include_directories (${PROJECT_NAME} BEFORE PRIVATE
         $ENV{WILTON_HOME}/devel/include
         ${PLATFORM_INCLUDE}
         ${STATICLIBS_HEADERS_DIRS})
