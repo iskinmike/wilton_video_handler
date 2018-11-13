@@ -87,6 +87,7 @@ void encoder::rescale_frame(AVFrame *frame){
     frame_out->pkt_dts = frame->pkt_dts;
     frame_out->pkt_pts = frame->pkt_pts;
     frame_out->pkt_duration = frame->pkt_duration;
+    frame_out->best_effort_timestamp = frame->best_effort_timestamp;
 
     sws_freeContext(sws_ctx);
 }
@@ -95,7 +96,7 @@ std::string encoder::construct_error(std::string what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
-    av_log(nullptr, AV_LOG_DEBUG, "Encoder error. [%s]", what.c_str());
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder error. [%s]\n", what.c_str());
     return error;
 }
 
@@ -196,7 +197,7 @@ std::string encoder::init()
         return construct_error("Can't open codec to encode");
     }
 
-    av_log(nullptr, AV_LOG_DEBUG, "Encoder format. Time base: %d/%d,  ",
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder format. Time base: [%d/%d]\n",
            out_stream->codec->time_base.den, out_stream->codec->time_base.num);
 
     /* timebase: This is the fundamental unit of time (in seconds) in terms
@@ -267,19 +268,20 @@ int encoder::encode_frame(AVFrame* frame)
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
         last_time = frame->pts;
         frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
-        tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
+//        tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames
-        if (last_pts == tmp) {
+        if (last_pts == frame->pts) {
+            std::cout << "skip frame" << std::endl;
             return 0;
         }
-        av_log(nullptr, AV_LOG_DEBUG, "Encoder frame orig pts: [%lu], rescaled pts: [%lu],"
-                                      "input_time_base: [%d/%d], stream base: [%d/%d], codec_base: [%d/%d]",
-                last_time, frame->pts,
+        last_pts = frame->pts;
+        av_log(nullptr, AV_LOG_DEBUG, "Encoder frame last stream pts: [%ld], rescaled pts: [%ld], effort timestamp: [%ld], "
+                                      "input_time_base: [%d/%d], stream base: [%d/%d], codec_base: [%d/%d]\n",
+                last_time, frame->pts, frame->best_effort_timestamp,
                 input_time_base.den, input_time_base.num,
                 out_stream->time_base.den, out_stream->time_base.num,
                 out_stream->codec->time_base.den, out_stream->codec->time_base.num
                );
-        last_pts = tmp;
     }
 
     out_size = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame, &got_pack);

@@ -12,8 +12,8 @@ void decoder::run_decoding()
             // Did we get a video frame?
             if(frame_finished) {
                 keeper->assig_new_frame(frame);
-                av_log(nullptr, AV_LOG_DEBUG, "Decoder new frame pts: [%d], dts: [%d]",
-                        frame->pts, frame->pkt_dts);
+                av_log(nullptr, AV_LOG_DEBUG, "Decoder new frame pts: [%ld], pkt_dts: [%ld],  pkt_pts: [%ld], timestamp: [%ld]\n",
+                        frame->pts, frame->pkt_dts, frame->pkt_pts, frame->best_effort_timestamp);
                 av_frame_unref(frame);
             }
         }
@@ -31,7 +31,7 @@ std::string decoder::construct_error(std::string what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
-    av_log(nullptr, AV_LOG_DEBUG, "Decoder error. [%s]", what.c_str());
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder error. [%s]\n", what.c_str());
     return error;
 }
 
@@ -126,7 +126,7 @@ std::string decoder::init()
         input_time_base = codec_ctx->time_base;
     }
 
-    av_log(nullptr, AV_LOG_DEBUG, "Decoder Time base: %d/%d",
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder Time base: [%d/%d]\n",
            input_time_base.den, input_time_base.num);
 
     initialized = true;
