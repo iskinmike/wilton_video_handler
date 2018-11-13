@@ -95,6 +95,7 @@ std::string encoder::construct_error(std::string what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder error. [%s]", what.c_str());
     return error;
 }
 
@@ -195,6 +196,9 @@ std::string encoder::init()
         return construct_error("Can't open codec to encode");
     }
 
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder format. Time base: %d/%d,  ",
+           out_stream->codec->time_base.den, out_stream->codec->time_base.num);
+
     /* timebase: This is the fundamental unit of time (in seconds) in terms
      * of which frame timestamps are represented. For fixed-fps content,
      * timebase should be 1/framerate and timestamp increments should be
@@ -268,7 +272,13 @@ int encoder::encode_frame(AVFrame* frame)
         if (last_pts == tmp) {
             return 0;
         }
-
+        av_log(nullptr, AV_LOG_DEBUG, "Encoder frame orig pts: [%lu], rescaled pts: [%lu],"
+                                      "input_time_base: [%d/%d], stream base: [%d/%d], codec_base: [%d/%d]",
+                last_time, frame->pts,
+                input_time_base.den, input_time_base.num,
+                out_stream->time_base.den, out_stream->time_base.num,
+                out_stream->codec->time_base.den, out_stream->codec->time_base.num
+               );
         last_pts = tmp;
     }
 
