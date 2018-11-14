@@ -3,7 +3,6 @@
 
 void decoder::run_decoding()
 {
-    keeper->setup_time_base(input_time_base);
     while(av_read_frame(format_ctx, &packet)>=0) {
         // Is this a packet from the video stream?
         if(packet.stream_index==video_stream) {
@@ -130,6 +129,7 @@ std::string decoder::init()
            input_time_base.den, input_time_base.num);
 
     initialized = true;
+    keeper->setup_time_base(input_time_base);
     return std::string{};
 }
 

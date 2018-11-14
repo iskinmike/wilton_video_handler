@@ -19,7 +19,6 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void encoder::run_encoding()
 {
-    input_time_base = get_time_base_from_keeper();
     first_run = true;
     pts_offset = 0;
     while (!stop_flag) {
@@ -106,17 +105,19 @@ bool encoder::is_initialized() const
 }
 
 void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
-    if (encoding_started) {
-        pause_encoding();
-        {
-            std::lock_guard<std::mutex> guard(mtx);
-            this->keeper = keeper;
-        }
-        start_encoding();
-    } else {
+    pause_encoding();
+    {
         std::lock_guard<std::mutex> guard(mtx);
         this->keeper = keeper;
+        input_time_base = get_time_base_from_keeper();
     }
+    start_encoding();
+//    if (encoding_started) {
+//    } else {
+//        std::lock_guard<std::mutex> guard(mtx);
+//        this->keeper = keeper;
+//        input_time_base = get_time_base_from_keeper();
+//    }
 }
 
 std::string encoder::get_out_file(){
@@ -271,7 +272,6 @@ int encoder::encode_frame(AVFrame* frame)
 //        tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames
         if (last_pts == frame->pts) {
-            std::cout << "skip frame" << std::endl;
             return 0;
         }
         last_pts = frame->pts;
