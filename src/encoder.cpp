@@ -105,19 +105,19 @@ bool encoder::is_initialized() const
 }
 
 void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
-    pause_encoding();
-    {
+    if (encoding_started) {
+        pause_encoding();
+        {
+            std::lock_guard<std::mutex> guard(mtx);
+            this->keeper = keeper;
+            input_time_base = get_time_base_from_keeper();
+        }
+        start_encoding();
+    } else {
         std::lock_guard<std::mutex> guard(mtx);
         this->keeper = keeper;
         input_time_base = get_time_base_from_keeper();
     }
-    start_encoding();
-//    if (encoding_started) {
-//    } else {
-//        std::lock_guard<std::mutex> guard(mtx);
-//        this->keeper = keeper;
-//        input_time_base = get_time_base_from_keeper();
-//    }
 }
 
 std::string encoder::get_out_file(){
