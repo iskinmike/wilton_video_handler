@@ -130,6 +130,8 @@ std::string decoder::init()
 
     initialized = true;
     keeper->setup_time_base(input_time_base);
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder time base setted to keeper. Time base: [%d/%d]\n",
+           keeper->get_time_base().den, keeper->get_time_base().num);
     return std::string{};
 }
 

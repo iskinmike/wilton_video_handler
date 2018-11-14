@@ -41,6 +41,8 @@ AVFrame *encoder::get_frame_from_keeper() {
 }
 
 AVRational encoder::get_time_base_from_keeper(){
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder get time base from keeper. Time base: [%d/%d]\n",
+           keeper->get_time_base().den, keeper->get_time_base().num);
     return keeper->get_time_base();
 }
 
@@ -131,6 +133,8 @@ encoder::encoder(encoder_settings set)
 {
     stop_flag.exchange(false);
     encoding_started.exchange(false);
+    input_time_base.den = 999999;
+    input_time_base.num = 1;
 }
 
 encoder::~encoder()
