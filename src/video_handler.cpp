@@ -72,13 +72,17 @@ std::string av_delete_encoder(int id){
     encoders.erase(id);
     return std::string{};
 }
-int av_init_decoder(int id, decoder_settings set){
+std::string av_init_decoder(int id, decoder_settings set){
     if (decoders.count(id)){
         decoders.erase(id);
     }
     decoders[id] =
             std::shared_ptr<decoder> (new decoder(set));
-    return id;
+    std::string res = decoders[id]->init();
+    if (res.empty()) {
+        res = std::to_string(id);
+    }
+    return res;
 }
 std::string av_delete_decoder(int id){
     decoders.erase(id);
@@ -121,7 +125,7 @@ std::string av_stop_encoding(int id){
 }
 // decoder functions. Occupies a video device and start to decode frames to memory
 std::string av_start_decoding(int id){
-    std::string res = decoders[id]->init();
+    std::string res{};// = decoders[id]->init();
     if (res.empty()) {
         decoders[id]->start_decoding();
     }
@@ -408,7 +412,6 @@ char* vahandler_wrapper_init_encoder(void* ctx, const char* data_in, int data_in
         settings.bit_rate = bit_rate;
         settings.framerate = framerate;
 
-
         std::string output = std::to_string(fun(id, settings));
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
@@ -435,7 +438,7 @@ char* vahandler_wrapper_init_encoder(void* ctx, const char* data_in, int data_in
 }
 char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
-        auto fun = reinterpret_cast<int(*)(int, decoder_settings)> (ctx);
+        auto fun = reinterpret_cast<std::string(*)(int, decoder_settings)> (ctx);
 
         json_t *root = nullptr;
         json_error_t error;
@@ -511,7 +514,7 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
             }
         }
 
-        std::string output = std::to_string(fun(id, settings));
+        std::string output = fun(id, settings);
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
