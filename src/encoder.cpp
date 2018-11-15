@@ -87,6 +87,7 @@ void encoder::rescale_frame(AVFrame *frame){
     frame_out->pkt_dts = frame->pkt_dts;
     frame_out->pkt_pts = frame->pkt_pts;
     frame_out->pkt_duration = frame->pkt_duration;
+    frame_out->best_effort_timestamp = frame->best_effort_timestamp;
 
     sws_freeContext(sws_ctx);
 }
@@ -124,6 +125,9 @@ encoder::encoder(encoder_settings set)
 {
     stop_flag.exchange(false);
     encoding_started.exchange(false);
+    // standart linux cameras time base 1/1000000
+    input_time_base.den = 1000000;
+    input_time_base.num = 1;
 }
 
 encoder::~encoder()
@@ -134,8 +138,6 @@ encoder::~encoder()
         avformat_flush(out_format_ctx);
         // automatically set pOutFormatCtx to NULL and frees all its allocated data
         avformat_free_context(out_format_ctx);
-//        av_frame_free(&frame_out);
-//        delete[] buffer;
     }
 }
 
@@ -253,19 +255,17 @@ int encoder::encode_frame(AVFrame* frame)
     av_init_packet(&tmp_pack);
     tmp_pack.data = NULL; // for autoinit
     tmp_pack.size = 0;
-    uint64_t tmp = 0;
     if (frame != NULL) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
         last_time = frame->pts;
         frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
-        tmp = av_rescale_q(frame->pts, out_stream->codec->time_base, out_stream->time_base);
         // skip some frames
-        if (last_pts == tmp) {
+        if (last_pts == frame->pts) {
             return 0;
         }
 
-        last_pts = tmp;
+        last_pts = frame->pts;
     }
 
     out_size = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame, &got_pack);
