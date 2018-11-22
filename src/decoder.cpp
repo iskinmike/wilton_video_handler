@@ -11,6 +11,8 @@ void decoder::run_decoding()
             // Did we get a video frame?
             if(frame_finished) {
                 keeper->assig_new_frame(frame);
+                av_log(nullptr, AV_LOG_DEBUG, "Decoder new frame pts: [%ld], pkt_dts: [%ld],  pkt_pts: [%ld], timestamp: [%ld]\n",
+                        frame->pts, frame->pkt_dts, frame->pkt_pts, frame->best_effort_timestamp);
                 av_frame_unref(frame);
             }
         }
@@ -28,6 +30,7 @@ std::string decoder::construct_error(std::string what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder error. [%s]\n", what.c_str());
     return error;
 }
 
@@ -87,7 +90,7 @@ std::string decoder::init()
     }
 
     // Dump information about file onto standard error
-//    av_dump_format(format_ctx, 0, filename.c_str(), 0);
+    av_dump_format(format_ctx, 0, filename.c_str(), 0);
 
     // Find the first video stream
     video_stream=-1;
@@ -122,8 +125,15 @@ std::string decoder::init()
         input_time_base = codec_ctx->time_base;
     }
 
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder Time base: [%d/%d]\n",
+           input_time_base.den, input_time_base.num);
+
     initialized = true;
     keeper->setup_time_base(input_time_base);
+
+    av_log(nullptr, AV_LOG_DEBUG, "Decoder time base setted to keeper. Time base: [%d/%d]\n",
+           keeper->get_time_base().den, keeper->get_time_base().num);
+
     return std::string{};
 }
 
