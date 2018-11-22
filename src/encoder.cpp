@@ -19,7 +19,6 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 
 void encoder::run_encoding()
 {
-    input_time_base = get_time_base_from_keeper();
     first_run = true;
     pts_offset = 0;
     while (!stop_flag) {
@@ -42,6 +41,8 @@ AVFrame *encoder::get_frame_from_keeper() {
 }
 
 AVRational encoder::get_time_base_from_keeper(){
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder get time base from keeper. Time base: [%d/%d]\n",
+           keeper->get_time_base().den, keeper->get_time_base().num);
     return keeper->get_time_base();
 }
 
@@ -96,6 +97,7 @@ std::string encoder::construct_error(std::string what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder error. [%s]\n", what.c_str());
     return error;
 }
 
@@ -110,12 +112,18 @@ void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
         {
             std::lock_guard<std::mutex> guard(mtx);
             this->keeper = keeper;
+            input_time_base = get_time_base_from_keeper();
         }
         start_encoding();
     } else {
         std::lock_guard<std::mutex> guard(mtx);
         this->keeper = keeper;
+        input_time_base = get_time_base_from_keeper();
     }
+}
+
+std::string encoder::get_out_file(){
+    return out_file;
 }
 
 encoder::encoder(encoder_settings set)
@@ -125,8 +133,7 @@ encoder::encoder(encoder_settings set)
 {
     stop_flag.exchange(false);
     encoding_started.exchange(false);
-    // standart linux cameras time base 1/1000000
-    input_time_base.den = 1000000;
+    input_time_base.den = 999999;
     input_time_base.num = 1;
 }
 
@@ -193,6 +200,9 @@ std::string encoder::init()
         return construct_error("Can't open codec to encode");
     }
 
+    av_log(nullptr, AV_LOG_DEBUG, "Encoder format. Time base: [%d/%d]\n",
+           out_stream->codec->time_base.den, out_stream->codec->time_base.num);
+
     /* timebase: This is the fundamental unit of time (in seconds) in terms
      * of which frame timestamps are represented. For fixed-fps content,
      * timebase should be 1/framerate and timestamp increments should be
@@ -201,7 +211,7 @@ std::string encoder::init()
      * pOutStream->time_base not equal to pOutStream->codec->time_base after that call */
     out_stream->time_base = out_stream->codec->time_base;
 
-//    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+    av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
@@ -266,6 +276,13 @@ int encoder::encode_frame(AVFrame* frame)
         }
 
         last_pts = frame->pts;
+        av_log(nullptr, AV_LOG_DEBUG, "Encoder frame last stream pts: [%ld], rescaled pts: [%ld], effort timestamp: [%ld], "
+                                      "input_time_base: [%d/%d], stream base: [%d/%d], codec_base: [%d/%d]\n",
+                last_time, frame->pts, frame->best_effort_timestamp,
+                input_time_base.den, input_time_base.num,
+                out_stream->time_base.den, out_stream->time_base.num,
+                out_stream->codec->time_base.den, out_stream->codec->time_base.num
+               );
     }
 
     out_size = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame, &got_pack);
