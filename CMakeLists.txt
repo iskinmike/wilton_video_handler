@@ -22,7 +22,7 @@ set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL 
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 set ( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "" )
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -g")
 set (PLATFORM_INCLUDE "")
 if ( NOT DEFINED ARCHITECTURE)
   set (ARCHITECTURE "x64") # or x86
@@ -39,48 +39,65 @@ include_directories(jansson/include)
 link_directories(jansson/lib)
 add_subdirectory(jansson)
 
+set (ARTOOL_SDK "/home/mike/workspace/utils/artoolkitx/SDK")
+
 set(SOURCES
     src/frame_keeper.cpp
     src/decoder.cpp
     src/encoder.cpp
     src/display.cpp
     src/photo.cpp
-    src/video_handler.cpp)
+    src/video_handler.cpp
+    src/marker_tracker.cpp
+    src/utils.cpp
+    src/marker_drawer/shader_class.cpp
+    src/marker_drawer/shader_class.hpp
+    src/marker_drawer/frame_to_bg.hpp
+    src/marker_drawer/frame_to_bg.cpp
+    src/marker_drawer/marker_drawer.hpp
+    src/marker_drawer/marker_drawer.cpp
+    src/marker_drawer/reverse_buffer.cpp
+    src/marker_drawer/reverse_buffer.hpp
+)
 
 set(LIBS 
-  avformat
-  avcodec
-  swscale
-  avdevice
-  swresample
-  avutil
-  SDL2
-  pthread
-  jansson
+    avformat
+    avcodec
+    swscale
+    avdevice
+    swresample
+    avutil
+    SDL2
+    pthread
+    jansson
+    /home/mike/hobbies/learn_gl/glfw/build/src/libglfw.so
+    GLEW
+    GL
+    ${ARTOOL_SDK}/lib/libARX.so
 )
 
 if ( WIN32 )
-  set(LIBS 
-    "$ENV{FFMPEG_DEV_DIR}/lib/avformat.lib"
-    "$ENV{FFMPEG_DEV_DIR}/lib/avcodec.lib"
-    "$ENV{FFMPEG_DEV_DIR}/lib/swscale.lib"
-    "$ENV{FFMPEG_DEV_DIR}/lib/avdevice.lib"
-    "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
-    "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
-    "$ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE}/SDL2.lib"
-    "${CMAKE_CURRENT_BINARY_DIR}/jansson/lib/Release/jansson.lib"
-  )
-  # needed for some MSVC installations
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+    set(LIBS
+        "$ENV{FFMPEG_DEV_DIR}/lib/avformat.lib"
+        "$ENV{FFMPEG_DEV_DIR}/lib/avcodec.lib"
+        "$ENV{FFMPEG_DEV_DIR}/lib/swscale.lib"
+        "$ENV{FFMPEG_DEV_DIR}/lib/avdevice.lib"
+        "$ENV{FFMPEG_DEV_DIR}/lib/swresample.lib"
+        "$ENV{FFMPEG_DEV_DIR}/lib/avutil.lib"
+        "$ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE}/SDL2.lib"
+        "${CMAKE_CURRENT_BINARY_DIR}/jansson/lib/Release/jansson.lib"
+    )
+    # needed for some MSVC installations
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /SAFESEH:NO /FORCE:Multiple")
 endif ( )
 
 set(STATICLIBS_HEADERS_DIRS
     "${CMAKE_CURRENT_BINARY_DIR}/jansson/include"
     "$ENV{FFMPEG_DEV_DIR}/include"
     "$ENV{SDL_DEV_DIR}/include"
-  )
+)
 
 message(STATUS ${LIBS})
 message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
@@ -96,16 +113,19 @@ add_library ( ${PROJECT_NAME} SHARED
 
 target_include_directories ( ${PROJECT_NAME} BEFORE PRIVATE 
         $ENV{WILTON_HOME}/devel/include
+        ${ARTOOL_SDK}/include
         ${PLATFORM_INCLUDE}
+        /home/mike/hobbies/learn_gl/glfw/include
+        /home/mike/hobbies/learn_gl/glfw/src
         ${STATICLIBS_HEADERS_DIRS})
 
 if ( WIN32 )
     target_link_libraries ( ${PROJECT_NAME} PRIVATE
             $ENV{WILTON_HOME}/devel/wilton_core.lib )
     set (WIN_CUSTOM_COMMAND_1 
-      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{FFMPEG_DEV_DIR}/bin dist/bin)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{FFMPEG_DEV_DIR}/bin dist/bin)
     set (WIN_CUSTOM_COMMAND_2
-      COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE} dist/bin)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{SDL_DEV_DIR}/lib/${ARCHITECTURE} dist/bin)
 endif ( )
 
 target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
@@ -113,6 +133,7 @@ target_link_libraries ( ${PROJECT_NAME} PRIVATE ${LIBS})
 add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory dist
         COMMAND ${CMAKE_COMMAND} -E make_directory dist
+        COMMAND ${CMAKE_COMMAND} -E make_directory dist/resources
         # copy wilton libs to app bundle
         COMMAND ${CMAKE_COMMAND} -E copy_directory $ENV{WILTON_HOME}/bin dist/bin
 
@@ -123,6 +144,7 @@ add_custom_target ( dist ALL
         COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}
             dist/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/src/marker_drawer/resources/* dist/resources/
         # copy JS stdlib
         COMMAND ${CMAKE_COMMAND} -E copy $ENV{WILTON_HOME}/std.wlib dist/
         # copy JS app
@@ -132,3 +154,7 @@ add_custom_target ( dist ALL
         COMMENT "Preparing application bundle, directory: [${CMAKE_CURRENT_BINARY_DIR}/dist] ..." )
 
 add_dependencies(dist jansson)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC -DARX_TARGET_PLATFORM_LINUX=1
+                                           PUBLIC -DDEBUG=1)
+

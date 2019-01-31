@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef MAKE_PHOTO_HPP
-#define MAKE_PHOTO_HPP
+#ifndef VIDEO_HANDLER_UTILS_HPP
+#define VIDEO_HANDLER_UTILS_HPP
 
+#include <string>
+#include <vector>
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 }
 
-#include <stdio.h>
-#include <string>
-#include "frame_keeper.hpp"
+namespace utils {
 
-namespace photo{
-std::string make_photo(std::string out_file, int photo_width, int photo_height, AVFrame* frame);
-std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper);
-}
-#endif  /* MAKE_PHOTO_HPP */
+std::string construct_error(std::string what);
+
+AVFrame* rescale_frame(AVFrame* frame, int new_width, int new_height, AVPixelFormat format, std::vector<uint8_t>& buffer);
+} // utils
+
+#endif  /* VIDEO_HANDLER_UTILS_HPP */

@@ -33,6 +33,8 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <atomic>
 #include "frame_keeper.hpp"
 
+#include "marker_tracker.hpp"
+#include "marker_drawer/marker_drawer.hpp"
 
 struct decoder_settings {
     std::string input_file, format;
@@ -64,9 +66,12 @@ class decoder
     int height;
     void run_decoding();
     bool initialized;
+    std::shared_ptr<marker_drawer> drawer;
 
     std::atomic_bool stop_flag;
     std::string construct_error(std::string what);
+
+    marker_tracker* tracker;
 
 public:
     decoder(decoder_settings set);

@@ -15,16 +15,9 @@ namespace {
     const int not_set = -1;
 }
 
-std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper)
-{
+std::string make_photo(std::string out_file, int photo_width, int photo_height, AVFrame* frame) {
     AVFrame* frame_rgb;
     struct SwsContext* sws_ctx;
-
-    AVFrame* frame = keeper->get_frame();
-
-    if (nullptr == frame) {
-        return error_return("Can't make Photo. Get 'NULL'' frame.");
-    }
 
     int width = (not_set != photo_width) ? photo_width : frame->width;
     int height = (not_set != photo_height) ? photo_height : frame->height;
@@ -126,7 +119,6 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
 
     sws_freeContext(sws_ctx);
 
-    av_frame_free(&frame);
     av_frame_free(&frame_rgb);
     av_free_packet(&tmp_pack);
 
@@ -138,5 +130,15 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
     delete[] buffer;
 
     return std::string{};
+}
+
+std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper) {
+    AVFrame* frame = keeper->get_frame();
+    if (nullptr == frame) {
+        return error_return("Can't make Photo. Get 'NULL'' frame.");
+    }
+    auto result = make_photo(out_file, photo_width, photo_height, frame);
+    av_frame_free(&frame);
+    return result;
 }
 }

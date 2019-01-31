@@ -189,6 +189,7 @@ std::string encoder::init()
     out_stream->codec->rc_max_rate = bit_rate; // allows to control bitrate
     out_stream->codec->rc_min_rate = bit_rate; // allows to control bitrate
     out_stream->codec->ticks_per_frame = 2; // for H.264 codec
+//    AV_TIME_BASE
 
     out_stream->id = out_format_ctx->nb_streams-1;
 
@@ -212,6 +213,7 @@ std::string encoder::init()
     out_stream->time_base = out_stream->codec->time_base;
 
     av_dump_format(out_format_ctx, 0, out_file.c_str(), 1);
+
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
