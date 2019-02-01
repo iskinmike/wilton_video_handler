@@ -35,8 +35,13 @@
 #include "photo.hpp"
 #include "frame_keeper.hpp"
 #include "recognizer.hpp"
+#include "video_logger.hpp"
 
 #include "jansson.h"
+
+#ifndef VERSION_STR
+#define VERSION_STR "VIDEO_HANDLER. Ver 1.01. Debug logging"
+#endif
 
 namespace video_handler {
 
@@ -46,6 +51,7 @@ std::map<int,std::shared_ptr<decoder>> decoders;
 std::map<int,std::shared_ptr<display>> displays;
 std::map<int,std::shared_ptr<recognizer>> recognizers;
 
+//video_logger logger;
 int get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
         return static_cast<int>(json_integer_value(value));
@@ -81,13 +87,17 @@ std::string av_delete_encoder(int id){
     encoders.erase(id);
     return std::string{};
 }
-int av_init_decoder(int id, decoder_settings set){
+std::string av_init_decoder(int id, decoder_settings set){
     if (decoders.count(id)){
         decoders.erase(id);
     }
     decoders[id] =
             std::shared_ptr<decoder> (new decoder(set));
-    return id;
+    std::string res = decoders[id]->init();
+    if (res.empty()) {
+        res = std::to_string(id);
+    }
+    return res;
 }
 std::string av_delete_decoder(int id){
     decoders.erase(id);
@@ -128,11 +138,14 @@ std::string av_start_encoding(int id){
 }
 std::string av_stop_encoding(int id){
     encoders[id]->stop_encoding();
+    video_logger& logger = video_logger::instance();
+    logger.copy_logfile_to(encoders[id]->get_out_file());
+    logger.drop_callback_function();
     return std::string{};
 }
 // decoder functions. Occupies a video device and start to decode frames to memory
 std::string av_start_decoding(int id){
-    std::string res = decoders[id]->init();
+    auto res= std::string{};
     if (res.empty()) {
         decoders[id]->start_decoding();
     }
@@ -205,11 +218,18 @@ std::string av_is_display_started(int id){
     return std::to_string(flag);
 }
 
+std::string av_get_version(){
+    return VERSION_STR;
+}
+
 template <typename T>
 char* vahandler_wrapper_for(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        if (str_id.empty()){
+            throw std::invalid_argument("Sended Empty id argument [" + str_id + "]");
+        }
         auto id = std::stoi(str_id);
         // chek if handler with id initialized
         auto output = std::string{};
@@ -264,6 +284,9 @@ char* vahandler_wrapper_is_started(void* ctx, const char* data_in, int data_in_l
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+        if (str_id.empty()){
+            throw std::invalid_argument("Sended Empty id argument [" + str_id + "]");
+        }
         auto id = std::stoi(str_id);
         // chek if handler with id initialized
         auto output = std::string{};
@@ -495,7 +518,7 @@ char* vahandler_wrapper_init_encoder(void* ctx, const char* data_in, int data_in
 }
 char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
     try {
-        auto fun = reinterpret_cast<int(*)(int, decoder_settings)> (ctx);
+        auto fun = reinterpret_cast<std::string(*)(int, decoder_settings)> (ctx);
 
         json_t *root = nullptr;
         json_error_t error;
@@ -516,6 +539,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         const char *key = nullptr;
         json_t *value = nullptr;
 
+        // logger
+        auto logger_tmp_file = std::string{};
+
         json_object_foreach(root, key, value) {
             auto key_str = std::string{key};
             if ("id" == key_str) {
@@ -528,6 +554,20 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
                 time_base_den = get_integer_or_throw(key_str, value);
             } else if ("time_base_num" == key_str) {
                 time_base_num = get_integer_or_throw(key_str, value);
+            } else if ("loggerSettings" == key_str) {
+                if (json_is_object(value)) {
+                    json_t *subobject = nullptr;
+                    const char *subobject_key = nullptr;
+                    json_object_foreach(value, subobject_key, subobject){
+                        auto subobject_key_str = std::string{subobject_key};
+                        if ("path" == subobject_key_str) {
+                            logger_tmp_file = get_string_or_throw(subobject_key_str, subobject);
+                        } else {
+                            std::string err_msg = std::string{"Unknown data field: [loggerSettings]["} + subobject_key_str + "]";
+                            throw std::invalid_argument(err_msg);
+                        }
+                    }
+                }
             } else {
                 std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
                 throw std::invalid_argument(err_msg);
@@ -546,8 +586,16 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         settings.time_base_den = time_base_den;
         settings.time_base_num = time_base_num;
 
+        if (!logger_tmp_file.empty()) {
+            video_logger& logger = video_logger::instance();
+            if (!logger.is_started()) {
+                logger.setup_tmp_file(logger_tmp_file);
+                logger.setup_callback_function();
+                av_log(nullptr, AV_LOG_DEBUG, "Decoder init. [%s]\n", av_get_version().c_str());
+            }
+        }
 
-        std::string output = std::to_string(fun(id, settings));
+        std::string output = fun(id, settings);
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -558,7 +606,6 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         *data_out_len = static_cast<int>(output.length());
         json_decref(root);
         return nullptr;
-
     } catch (const std::exception& e) {
         auto what = std::string(e.what());
         char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
@@ -883,6 +930,16 @@ char* vahandler_wrapper_make_photo(void* ctx, const char* data_in, int data_in_l
     }
 }
 
+
+char* vahandler_wrapper_get_version(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    auto fun = reinterpret_cast<std::string(*)()> (ctx);
+    auto output = fun();
+    *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+    std::memcpy(*data_out, output.c_str(), output.length() + 1);
+    *data_out_len = static_cast<int>(output.length());
+    return nullptr;
+}
+
 } // namespace video_handler
 
 // this function is called on module load,
@@ -895,6 +952,12 @@ char* wilton_module_init() {
     char* err = nullptr;
 
     av_log_set_level(AV_LOG_QUIET);
+
+    // register 'av_get_version' function
+    auto name_av_get_version = std::string("av_get_version");
+    err = wiltoncall_register(name_av_get_version.c_str(), static_cast<int> (name_av_get_version.length()),
+            reinterpret_cast<void*> (video_handler::av_get_version), video_handler::vahandler_wrapper_get_version);
+    if (nullptr != err) return err;
 
     // register 'av_start_encoding' function
     auto name_av_start_encoding = std::string("av_start_encoding");

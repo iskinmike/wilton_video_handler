@@ -91,6 +91,7 @@ public:
   bool is_initialized() const;
 
   void setup_frame_keeper(std::shared_ptr<frame_keeper> keeper);
+  std::string get_out_file();
 };
 
 
