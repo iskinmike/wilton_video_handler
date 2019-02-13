@@ -45,6 +45,7 @@ set(SOURCES
     src/encoder.cpp
     src/display.cpp
     src/photo.cpp
+    src/utils.cpp
     src/video_handler.cpp)
 
 set(LIBS 

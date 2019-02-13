@@ -3,17 +3,9 @@
 #include "stdio.h"
 #include <iostream>
 
-namespace photo{
+#include "utils.hpp"
 
-namespace {
-    std::string error_return(std::string message){
-        auto error = std::string{"{ \"error\": \""};
-        error += message;
-        error += "\"}";
-        return error;
-    }
-    const int not_set = -1;
-}
+namespace photo{
 
 std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper)
 {
@@ -23,9 +15,10 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
     AVFrame* frame = keeper->get_frame();
 
     if (nullptr == frame) {
-        return error_return("Can't make Photo. Get 'NULL'' frame.");
+        return utils::construct_error("Can't make Photo. Get 'NULL'' frame.");
     }
 
+    const int not_set = -1;
     int width = (not_set != photo_width) ? photo_width : frame->width;
     int height = (not_set != photo_height) ? photo_height : frame->height;
     AVPixelFormat new_format = AV_PIX_FMT_RGB24;
@@ -76,14 +69,14 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
 
     int ret = 0;
     ret = avformat_alloc_output_context2(&out_format_ctx, NULL, NULL, out_file.c_str());
-    if (0 > ret) return error_return("Could not allocate output_context for photo");
+    if (0 > ret) return utils::construct_error("Could not allocate output_context for photo");
 
     // find encoder codec
     encode_codec = avcodec_find_encoder(AV_CODEC_ID_PNG);
-    if (!encode_codec) return error_return("Codec not found for photo");
+    if (!encode_codec) return utils::construct_error("Codec not found for photo");
 
     out_stream = avformat_new_stream(out_format_ctx, encode_codec);
-    if (!out_stream) return error_return("Could not allocate stream for photo");
+    if (!out_stream) return utils::construct_error("Could not allocate stream for photo");
 
     // settings
     out_stream->codec->pix_fmt = new_format;
@@ -97,13 +90,13 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
 
     // need open codec
     if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
-        return error_return("Can't open codec to encode photo");
+        return utils::construct_error("Can't open codec to encode photo");
     }
 
     // open file to write
     ret = avio_open(&(out_format_ctx->pb), out_file.c_str(), AVIO_FLAG_WRITE);
     if (0 > ret) {
-        return error_return(std::string("Could not open ") + out_file);
+        return utils::construct_error(std::string("Could not open ") + out_file);
     }
     // header is musthave for this
     avformat_write_header(out_format_ctx, NULL);
@@ -116,7 +109,7 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
 
     ret = avcodec_encode_video2(out_stream->codec, &tmp_pack, frame_rgb, &got_pack);
     if (0 != ret) {
-        return error_return("photo encoder error");
+        return utils::construct_error("photo encoder error");
     }
 
     av_write_frame(out_format_ctx, &tmp_pack);
@@ -139,4 +132,4 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
 
     return std::string{};
 }
-}
+} // photo
