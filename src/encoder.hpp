@@ -29,6 +29,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 #include <vector>
 #include <mutex>
 #include "frame_keeper.hpp"
+#include "utils.hpp"
 
 struct encoder_settings {
     std::string output_file;
@@ -46,8 +47,10 @@ class encoder
 
     struct SwsContext* sws_ctx;
     int                num_bytes;
-    uint8_t*           buffer;
+//    uint8_t*           buffer;
     AVFrame*         frame_out;
+    utils::frame_rescaler rescaler;
+    std::vector<uint8_t> buffer;
 
     int bit_rate;
     double framerate;
@@ -84,7 +87,7 @@ public:
   void stop_encoding();
   void pause_encoding();
 
-  int encode_frame(AVFrame* frame);
+  int encode_frame(AVFrame* inpt_frame);
 
   void close_file();
   void fflush_encoder();

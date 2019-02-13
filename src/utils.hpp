@@ -30,6 +30,22 @@ namespace utils {
 std::string construct_error(std::string what);
 
 AVFrame* rescale_frame(AVFrame* frame, int new_width, int new_height, AVPixelFormat format, std::vector<uint8_t>& buffer);
+
+class frame_rescaler
+{
+	SwsContext* sws_ctx;
+	int width; 
+	int height;
+	AVPixelFormat format;
+	std::vector<uint8_t> buffer;
+public:
+    frame_rescaler(int width, int height, AVPixelFormat format);
+    void clear_sws_context();
+    void rescale_frame_to_existed(AVFrame* frame, AVFrame* out_frame);
+    AVFrame* rescale_frame(AVFrame* frame);
+    ~frame_rescaler();
+};
+
 } // utils
 
 #endif  /* VIDEO_HANDLER_UTILS_HPP */

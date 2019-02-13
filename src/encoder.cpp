@@ -22,16 +22,16 @@ void encoder::run_encoding()
 {
     first_run = true;
     pts_offset = 0;
+    frame_out = av_frame_alloc();
     while (!stop_flag) {
         AVFrame *tmp_frame = get_frame_from_keeper();
         if (nullptr != tmp_frame) {
             rescale_frame(tmp_frame);
             encode_frame(frame_out);
             av_frame_free(&tmp_frame);
-            av_frame_free(&frame_out);
-            delete[] buffer;
         }
     }
+    av_frame_free(&frame_out);
     stop_flag.exchange(false);
     encoding_started.exchange(false);
 }
@@ -48,50 +48,19 @@ AVRational encoder::get_time_base_from_keeper(){
 }
 
 void encoder::rescale_frame(AVFrame *frame){
-    frame_out=av_frame_alloc();
-
-    // Determine required buffer size and allocate buffer
-    num_bytes=avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
-    buffer = new uint8_t[num_bytes*sizeof(uint8_t)];
-
-    // Assign appropriate parts of buffer to image planes in pFrameOut
-    // Note that pFrameOut is an AVFrame, but AVFrame is a superset
-    // of AVPicture
-    avpicture_fill((AVPicture *)frame_out, buffer, AV_PIX_FMT_YUV420P, width, height);
-
     if (first_run) {
         first_run = false;
         pts_offset = frame->best_effort_timestamp - last_time;
         frame->key_frame = 1;
     }
-    sws_ctx = sws_getContext
-    (
-        frame->width,
-        frame->height,
-        static_cast<AVPixelFormat>(frame->format),
-        width,
-        height,
-        AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR,
-        NULL,
-        NULL,
-        NULL
-    );
-    sws_scale(sws_ctx,
-              ((AVPicture*)frame)->data, ((AVPicture*)frame)->linesize, 0,
-              frame->height, ((AVPicture *)frame_out)->data,
-              ((AVPicture *)frame_out)->linesize);
+
+    rescaler.rescale_frame_to_existed(frame, frame_out);
 
     frame_out->pts = frame->best_effort_timestamp - pts_offset;
-    frame_out->format = AV_PIX_FMT_YUV420P;
-    frame_out->width = width;
-    frame_out->height = height;
     frame_out->pkt_dts = frame->pkt_dts;
     frame_out->pkt_pts = frame->pkt_pts;
     frame_out->pkt_duration = frame->pkt_duration;
     frame_out->best_effort_timestamp = frame->best_effort_timestamp;
-
-    sws_freeContext(sws_ctx);
 }
 
 bool encoder::is_initialized() const
@@ -122,11 +91,11 @@ std::string encoder::get_out_file(){
 encoder::encoder(encoder_settings set)
     : encode_codec(NULL), out_file(set.output_file), initialized(false),
       out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1), last_time(0),
-      bit_rate(set.bit_rate), width(set.width), height(set.height), framerate(set.framerate)
+      bit_rate(set.bit_rate), width(set.width), height(set.height), framerate(set.framerate), rescaler(set.width, set.height, AV_PIX_FMT_YUV420P)
 {
-    stop_flag.exchange(false);
+    stop_flag.exchange(false); // to avoid warnings from VS2013
     encoding_started.exchange(false);
-    input_time_base.den = 999999;
+    input_time_base.den = 999999; // This value is used to distinguish the specified parameters from the default parameters.
     input_time_base.num = 1;
 }
 
@@ -249,16 +218,16 @@ void encoder::pause_encoding(){
     }
 }
 
-int encoder::encode_frame(AVFrame* frame)
+int encoder::encode_frame(AVFrame* inpt_frame)
 {
     int out_size = 0;
     int got_pack = 0;
-
+    AVFrame* frame = inpt_frame;
     AVPacket tmp_pack;
     av_init_packet(&tmp_pack);
-    tmp_pack.data = NULL; // for autoinit
+    tmp_pack.data = nullptr; // for autoinit
     tmp_pack.size = 0;
-    if (frame != NULL) {
+    if (nullptr != frame) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
         last_time = frame->pts;
