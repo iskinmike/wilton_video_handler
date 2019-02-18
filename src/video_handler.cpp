@@ -68,8 +68,7 @@ int av_init_encoder(int id, encoder_settings set){
     if (encoders.count(id)){
         encoders.erase(id);
     }
-    encoders[id] =
-            std::shared_ptr<encoder> (new encoder(set));
+    encoders[id] = std::make_shared<encoder> (set);
     return id;
 }
 std::string av_delete_encoder(int id){
@@ -80,8 +79,7 @@ std::string av_init_decoder(int id, decoder_settings set){
     if (decoders.count(id)){
         decoders.erase(id);
     }
-    decoders[id] =
-            std::shared_ptr<decoder> (new decoder(set));
+    decoders[id] = std::make_shared<decoder> (set);
     std::string res = decoders[id]->init();
     if (res.empty()) {
         res = std::to_string(id);
@@ -96,8 +94,7 @@ int av_init_display(int id, display_settings set){
     if (displays.count(id)){
         displays.erase(id);
     }
-    displays[id] =
-            std::shared_ptr<display> (new display(set));
+    displays[id] = std::make_shared<display> (set);
     return id;
 }
 std::string av_setup_decoder_to_display(int display_id, int decoder_id){
@@ -183,11 +180,19 @@ char* vahandler_wrapper_for(void* ctx, const char* data_in, int data_in_len, cha
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
-        auto id = std::stoi(str_id);
+
+        int id = 0;
+        try {
+            id = std::stoi(str_id);
+        } catch (...) {
+            throw std::invalid_argument("Wrong data format used. Excpected integer value, sended '" + str_id + "'");
+        }
+
         // chek if handler with id initialized
         auto output = std::string{};
         auto name = std::string{};
 
+        //
         bool existance_check = false;
         if (std::is_same<T, display>::value){
             existance_check = (nullptr == displays[id]);
@@ -199,8 +204,9 @@ char* vahandler_wrapper_for(void* ctx, const char* data_in, int data_in_len, cha
             existance_check = (nullptr == decoders[id]);
             name = "decoder";
         } else {
-            throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_is_started]");
+            throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_for]");
         }
+
 
         if (existance_check) {
             output = "{ \"error\": \"Wrong " + name + " id [" + str_id + "]\"}";
@@ -234,7 +240,12 @@ char* vahandler_wrapper_is_started(void* ctx, const char* data_in, int data_in_l
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
-        auto id = std::stoi(str_id);
+        int id = 0;
+        try {
+            id = std::stoi(str_id);
+        } catch (...) {
+            throw std::invalid_argument("Wrong data format used. Excpected integer value, sended '" + str_id + "'");
+        }
         // chek if handler with id initialized
         auto output = std::string{};
 
@@ -716,7 +727,7 @@ char* vahandler_wrapper_get_version(void* ctx, const char* data_in, int data_in_
 } // namespace video_handler
 
 // this function is called on module load,
-// must return NULL on success
+// must return nullptr on success
 extern "C"
 #ifdef _WIN32
 __declspec(dllexport)

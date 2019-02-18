@@ -46,7 +46,9 @@ set(SOURCES
     src/display.cpp
     src/photo.cpp
     src/utils.cpp
-    src/video_handler.cpp)
+    src/video_handler.cpp
+    src/video_logger.hpp
+)
 
 set(LIBS 
   avformat

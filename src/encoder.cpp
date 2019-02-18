@@ -47,14 +47,17 @@ AVRational encoder::get_time_base_from_keeper(){
     return keeper->get_time_base();
 }
 
-void encoder::rescale_frame(AVFrame *frame){
+void encoder::rescale_frame(AVFrame *frame) {
     if (first_run) {
         first_run = false;
         pts_offset = frame->best_effort_timestamp - last_time;
         frame->key_frame = 1;
     }
 
-    rescaler.rescale_frame_to_existed(frame, frame_out);
+    auto tmp_pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
+    if (last_pts != tmp_pts) { // this check repeated in encode_frame but i think it allows not to do usless work and keeps code simple. I tried to rearrange but its is my most simple idea
+        rescaler.rescale_frame_to_existed(frame, frame_out);
+    }
 
     frame_out->pts = frame->best_effort_timestamp - pts_offset;
     frame_out->pkt_dts = frame->pkt_dts;
@@ -62,6 +65,7 @@ void encoder::rescale_frame(AVFrame *frame){
     frame_out->pkt_duration = frame->pkt_duration;
     frame_out->best_effort_timestamp = frame->best_effort_timestamp;
 }
+
 
 bool encoder::is_initialized() const
 {
@@ -89,8 +93,8 @@ std::string encoder::get_out_file(){
 }
 
 encoder::encoder(encoder_settings set)
-    : encode_codec(NULL), out_file(set.output_file), initialized(false),
-      out_format_ctx(NULL), out_stream(NULL), pts_flag(false), last_pts(-1), last_time(0),
+    : encode_codec(nullptr), out_file(set.output_file), initialized(false),
+      out_format_ctx(nullptr), out_stream(nullptr), pts_flag(false), last_pts(-1), last_time(0),
       bit_rate(set.bit_rate), width(set.width), height(set.height), framerate(set.framerate), rescaler(set.width, set.height, AV_PIX_FMT_YUV420P)
 {
     stop_flag.exchange(false); // to avoid warnings from VS2013
@@ -105,7 +109,7 @@ encoder::~encoder()
     if (initialized) {
         avcodec_close(out_stream->codec);
         avformat_flush(out_format_ctx);
-        // automatically set pOutFormatCtx to NULL and frees all its allocated data
+        // automatically set out_format_ctx to nullptr and frees all its allocated data
         avformat_free_context(out_format_ctx);
     }
 }
@@ -119,9 +123,9 @@ std::string encoder::init()
 
     /* allocate the output media context */
     int ret = 0;
-    ret = avformat_alloc_output_context2(&out_format_ctx, NULL, NULL, out_file.c_str());
+    ret = avformat_alloc_output_context2(&out_format_ctx, nullptr, nullptr, out_file.c_str());
     if (0 > ret) {
-        ret = avformat_alloc_output_context2(&out_format_ctx, NULL, "avi", NULL);
+        ret = avformat_alloc_output_context2(&out_format_ctx, nullptr, "avi", nullptr);
     }
     if (0 > ret) return utils::construct_error("Could not allocate output_context");
 
@@ -138,8 +142,8 @@ std::string encoder::init()
     // set Context settings
     out_stream->codec->codec_id = encode_codec->id;
     out_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-    out_stream->codec->gop_size = std::lround(this->framerate/half_divider);/* emit every frame as intra frame*/
-    out_stream->codec->time_base = av_inv_q(av_d2q(this->framerate, framerate_max_allowed_num_denum));
+    out_stream->codec->gop_size = std::lround(this->framerate/half_divider); /*emit 2 intra frames every second*/
+    out_stream->codec->time_base =av_inv_q(av_d2q(this->framerate, framerate_max_allowed_num_denum)); // framerate can't be more than camera framerate
 
     out_stream->codec->width = width;
     out_stream->codec->height = height;
@@ -158,7 +162,7 @@ std::string encoder::init()
     out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     // need open codec
-    if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
+    if(0 > avcodec_open2(out_stream->codec, encode_codec, nullptr)) {
         return utils::construct_error("Can't open codec to encode");
     }
 
@@ -181,7 +185,7 @@ std::string encoder::init()
         return utils::construct_error("Could not open " + out_file);
     }
     // header is musthave for this
-    avformat_write_header(out_format_ctx, NULL);
+    avformat_write_header(out_format_ctx, nullptr);
 
     initialized = true;
     return std::string{};
@@ -194,7 +198,7 @@ std::string encoder::start_encoding()
         encoder_thread = std::thread([this] {return this->run_encoding();});
         encoding_started.exchange(true);
     } else {
-        return std::string{"{ \"error\": \"Decoder not setted\"}"};
+        return utils::construct_error("Decoder not setted");
     }
     return std::string();
 }
@@ -216,6 +220,7 @@ void encoder::pause_encoding(){
     if (encoder_thread.joinable()) {
         encoder_thread.join();
     }
+    rescaler.clear_sws_context();
 }
 
 int encoder::encode_frame(AVFrame* inpt_frame)
@@ -230,9 +235,9 @@ int encoder::encode_frame(AVFrame* inpt_frame)
     if (nullptr != frame) {
         // Based on: https://stackoverflow.com/questions/11466184/setting-video-bit-rate-through-ffmpeg-api-is-ignored-for-libx264-codec
         // also on ffmpeg documentation  doc/example/muxing.c and remuxing.c
-        last_time = frame->pts;
+        last_time = frame->pts; // used to calculate frame time to append frames from another camera
         frame->pts = av_rescale_q(frame->pts, input_time_base, out_stream->codec->time_base);
-        // skip some frames
+        // skip frames if they get same pts avcodec will drop it anyway, byt it supress warnings
         if (last_pts == frame->pts) {
             return 0;
         }
@@ -259,9 +264,9 @@ int encoder::encode_frame(AVFrame* inpt_frame)
 
 void encoder::close_file()
 {
-    if (NULL != out_format_ctx) {
+    if (nullptr != out_format_ctx) {
         // need to write trailer to finalize video file
-        if (NULL != out_format_ctx->pb){
+        if (nullptr != out_format_ctx->pb){
             av_write_trailer(out_format_ctx);
             avio_closep(&(out_format_ctx->pb));
         }
@@ -270,5 +275,5 @@ void encoder::close_file()
 
 void encoder::fflush_encoder()
 {
-    while (encode_frame(NULL));
+    while (encode_frame(nullptr));
 }

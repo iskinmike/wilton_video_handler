@@ -17,7 +17,7 @@ struct param_info{
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
-	char szTextWin[255];DWORD dwPID = NULL; 
+    char szTextWin[255];DWORD dwPID = nullptr;
 	param_info* tmp_value = reinterpret_cast<param_info*>(lParam);
 	std::string title(tmp_value->title);
 	if(GetWindowText(hwnd,szTextWin,sizeof(szTextWin)))
@@ -200,7 +200,7 @@ AVFrame *display::get_frame_from_keeper() {
 display::display(display_settings set)
     : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title), parent_title(set.parent_title),
       init_result("can't init"), initialized(false), width(set.width),
-      height(set.height), pos_x(set.pos_x), pos_y(set.pos_y)
+      height(set.height), pos_x(set.pos_x), pos_y(set.pos_y), rescaler(set.width, set.height, AV_PIX_FMT_YUV420P)
 {            
     stop_flag.exchange(false);
 }
@@ -285,52 +285,11 @@ void display::display_frame(AVFrame *frame)
         return;
     }
 
-    struct SwsContext* sws_ctx;
-    AVPixelFormat format = static_cast<AVPixelFormat>(frame->format);
-    AVPixelFormat new_format = AV_PIX_FMT_YUV420P;
-
-    sws_ctx = sws_getContext
-    (
-        frame->width,
-        frame->height,
-        format,
-        this->width,
-        this->height,
-        new_format,
-        SWS_FAST_BILINEAR,
-        NULL,
-        NULL,
-        NULL
-    );
-
-    AVFrame *frame_rgb = av_frame_alloc();
-    // Determine required buffer size and allocate buffer
-    int numBytes = avpicture_get_size(new_format, this->width,
-                    this->height);
-    uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
-
-    //setup buffer for new frame
-    avpicture_fill((AVPicture *)frame_rgb, buffer, new_format,
-           this->width, this->height);
-
-    // setup frame sizes
-    frame_rgb->width = width;
-    frame_rgb->height = height;
-    frame_rgb->format = new_format;
-    frame_rgb->pts = 0;
-
-    // rescale frame to frameRGB
-    sws_scale(sws_ctx,
-        ((AVPicture*)frame)->data,
-        ((AVPicture*)frame)->linesize,
-        0,
-        frame->height,
-        ((AVPicture *)frame_rgb)->data,
-        ((AVPicture *)frame_rgb)->linesize);
+    AVFrame *frame_rgb = rescaler.rescale_frame(frame);
 
     SDL_UpdateYUVTexture(
         texture,
-        NULL,
+        nullptr,
         frame_rgb->data[0], //vp->yPlane,
         frame_rgb->linesize[0],
         frame_rgb->data[1], //vp->yPlane,
@@ -340,11 +299,9 @@ void display::display_frame(AVFrame *frame)
     );
 
     SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderCopy(renderer, texture, nullptr, nullptr);
     SDL_RenderPresent(renderer);
 
-    delete[] buffer;
-    sws_freeContext(sws_ctx);
     av_frame_free(&frame_rgb);
 }
 
@@ -352,7 +309,7 @@ void display::set_display_topmost(){
 #ifdef WIN32
     SetWindowPos(cam_window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #else
-    Display* disp = XOpenDisplay(":0");
+    Display* disp = XOpenDisplay(":0"); // choose default display
 
     XRaiseWindow(disp, cam_window);
     XSetInputFocus(disp, cam_window, RevertToParent, CurrentTime);
@@ -365,4 +322,5 @@ void display::set_display_topmost(){
 void display::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
     std::lock_guard<std::mutex> guard(mtx);
     this->keeper = keeper;
+    rescaler.clear_sws_context();
 }

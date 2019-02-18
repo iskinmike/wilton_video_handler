@@ -34,8 +34,8 @@ bool decoder::is_initialized() const
 
 decoder::decoder(decoder_settings set)
     : filename(set.input_file), format(set.format),
-      format_ctx(NULL),file_iformat(NULL),codec_ctx(NULL),
-      codec(NULL), frame(NULL), initialized(false),
+      format_ctx(nullptr),file_iformat(nullptr),codec_ctx(nullptr),
+      codec(nullptr), frame(nullptr), initialized(false),
       width(-1), height(-1), bit_rate(-1)
 {
     stop_flag.exchange(false);
@@ -66,19 +66,19 @@ std::string decoder::init()
     }
 
     file_iformat = av_find_input_format(format.c_str());
-    if (file_iformat == NULL) {
+    if (file_iformat == nullptr) {
         return utils::construct_error("Unknown input format: " + format);
     }
 
     // Open video file
-    if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, NULL)!=0){
-        if(avformat_open_input(&format_ctx, filename.c_str(), NULL, NULL)!=0){
+    if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, nullptr)!=0){
+        if(avformat_open_input(&format_ctx, filename.c_str(), nullptr, nullptr)!=0){
             return utils::construct_error("Can't Open video file anyway");
         }
     }
 
     // Retrieve stream information
-    if(avformat_find_stream_info(format_ctx, NULL)<0) {
+    if(avformat_find_stream_info(format_ctx, nullptr)<0) {
         return utils::construct_error("Can't Retrieve stream information");
     }
 
@@ -101,12 +101,12 @@ std::string decoder::init()
 
     // Find the decoder for the video stream
     codec=avcodec_find_decoder(codec_ctx->codec_id);
-    if(codec==NULL) {
+    if(codec==nullptr) {
         return utils::construct_error("Unsupported codec!");
     }
 
     // Open codec
-    if(avcodec_open2(codec_ctx, codec, NULL)<0) {
+    if(avcodec_open2(codec_ctx, codec, nullptr)<0) {
         printf("Can't open codec\n");
         return utils::construct_error("Can't open codec"); // Could not open codec
     }

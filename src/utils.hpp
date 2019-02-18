@@ -41,6 +41,7 @@ class frame_rescaler
 public:
     frame_rescaler(int width, int height, AVPixelFormat format);
     void clear_sws_context();
+
     void rescale_frame_to_existed(AVFrame* frame, AVFrame* out_frame);
     AVFrame* rescale_frame(AVFrame* frame);
     ~frame_rescaler();

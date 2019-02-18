@@ -45,12 +45,8 @@ class encoder
     AVStream*        out_stream;
     std::string      out_file;
 
-    struct SwsContext* sws_ctx;
-    int                num_bytes;
-//    uint8_t*           buffer;
     AVFrame*         frame_out;
     utils::frame_rescaler rescaler;
-    std::vector<uint8_t> buffer;
 
     int bit_rate;
     double framerate;
@@ -60,9 +56,9 @@ class encoder
     int64_t last_pts;
     AVRational input_time_base;
 
-    uint64_t pts_offset;
-    uint64_t last_time;
-    bool first_run;
+    uint64_t pts_offset; // used to calculate time offset to start video time from zero
+    uint64_t last_time; // used to calculate frame time to append frames from another camera
+    bool first_run; // checks is
 
     FILE *file;
     std::thread encoder_thread;
@@ -73,7 +69,6 @@ class encoder
 
     std::mutex mtx;
     std::shared_ptr<frame_keeper> keeper;
-
 
     AVFrame* get_frame_from_keeper();
     AVRational get_time_base_from_keeper();

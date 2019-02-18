@@ -9,66 +9,33 @@ namespace photo{
 
 std::string make_photo(std::string out_file, int photo_width, int photo_height, std::shared_ptr<frame_keeper> keeper)
 {
-    AVFrame* frame_rgb;
-    struct SwsContext* sws_ctx;
-
     AVFrame* frame = keeper->get_frame();
 
     if (nullptr == frame) {
-        return utils::construct_error("Can't make Photo. Get 'NULL'' frame.");
+        return utils::construct_error("Can't make Photo. Get 'nullptr'' frame.");
     }
 
+    // prepare rgb frame
     const int not_set = -1;
     int width = (not_set != photo_width) ? photo_width : frame->width;
     int height = (not_set != photo_height) ? photo_height : frame->height;
     AVPixelFormat new_format = AV_PIX_FMT_RGB24;
 
-    sws_ctx = sws_getContext
-    (
-        frame->width,
-        frame->height,
-        static_cast<AVPixelFormat>(frame->format),
-        width,
-        height,
-        new_format,
-        SWS_BILINEAR,
-        NULL,
-        NULL,
-        NULL
-    );
+    utils::frame_rescaler rescaler(width, height, new_format);
+    AVFrame* frame_rgb = rescaler.rescale_frame(frame);
 
-    frame_rgb = av_frame_alloc();
-    // Determine required buffer size and allocate buffer
-    int numBytes = avpicture_get_size(new_format, width,
-                    height);
-    uint8_t* buffer=new uint8_t[numBytes*sizeof(uint8_t)];
-
-    //setup buffer for new frame
-    avpicture_fill((AVPicture *)frame_rgb, buffer, new_format,
-           width, height);
-
-    // setup frame sizes
     frame_rgb->width = width;
     frame_rgb->height = height;
     frame_rgb->format = new_format;
     frame_rgb->pts = 0;
 
-    // rescale frame to frameRGB
-    sws_scale(sws_ctx,
-        ((AVPicture*)frame)->data,
-        ((AVPicture*)frame)->linesize,
-        0,
-        frame->height,
-        ((AVPicture *)frame_rgb)->data,
-        ((AVPicture *)frame_rgb)->linesize);
-
     /* allocate the output media context */
-    AVFormatContext* out_format_ctx = NULL;
-    AVCodec* encode_codec = NULL;
-    AVStream* out_stream = NULL;
+    AVFormatContext* out_format_ctx = nullptr;
+    AVCodec* encode_codec = nullptr;
+    AVStream* out_stream = nullptr;
 
     int ret = 0;
-    ret = avformat_alloc_output_context2(&out_format_ctx, NULL, NULL, out_file.c_str());
+    ret = avformat_alloc_output_context2(&out_format_ctx, nullptr, nullptr, out_file.c_str());
     if (0 > ret) return utils::construct_error("Could not allocate output_context for photo");
 
     // find encoder codec
@@ -89,7 +56,7 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
     out_stream->time_base = out_stream->codec->time_base;
 
     // need open codec
-    if(avcodec_open2(out_stream->codec, encode_codec, NULL)<0) {
+    if(avcodec_open2(out_stream->codec, encode_codec, nullptr)<0) {
         return utils::construct_error("Can't open codec to encode photo");
     }
 
@@ -98,12 +65,14 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
     if (0 > ret) {
         return utils::construct_error(std::string("Could not open ") + out_file);
     }
-    // header is musthave for this
-    avformat_write_header(out_format_ctx, NULL);
 
+    // header is musthave for this
+    avformat_write_header(out_format_ctx, nullptr);
+
+    // prepare packet
     AVPacket tmp_pack;
     av_init_packet(&tmp_pack);
-    tmp_pack.data = NULL; // for autoinit
+    tmp_pack.data = nullptr; // for autoinit
     tmp_pack.size = 0;
     int got_pack = 0;
 
@@ -113,23 +82,19 @@ std::string make_photo(std::string out_file, int photo_width, int photo_height, 
     }
 
     av_write_frame(out_format_ctx, &tmp_pack);
-
+    // trailer is musthave
     av_write_trailer(out_format_ctx);
     avio_closep(&(out_format_ctx->pb));
 
-    sws_freeContext(sws_ctx);
-
+    // free all allocated memory
     av_frame_free(&frame);
     av_frame_free(&frame_rgb);
     av_free_packet(&tmp_pack);
 
     avcodec_close(out_stream->codec);
     avformat_flush(out_format_ctx);
-    // automatically set pOutFormatCtx to NULL and frees all its allocated data
+    // automatically set out_format_ctx to nullptr and frees all its allocated data
     avformat_free_context(out_format_ctx);
-
-    delete[] buffer;
-
     return std::string{};
 }
 } // photo

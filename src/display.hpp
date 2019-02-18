@@ -25,6 +25,7 @@
 #include <atomic>
 #include <chrono>
 #include "frame_keeper.hpp"
+#include "utils.hpp"
 
 #ifdef WIN32
 #include <windows.h>
@@ -39,7 +40,6 @@
 extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-undefined-reference-to-avcodec-register-all-does-not-link
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
 }
 
 struct display_settings {
@@ -80,6 +80,9 @@ class display
     void send_result(std::string result);
     std::atomic_bool stop_flag;
     bool initialized;
+
+    utils::frame_rescaler rescaler;
+    std::vector<uint8_t> buffer;
 
     std::shared_ptr<frame_keeper> keeper;
     AVFrame *get_frame_from_keeper();

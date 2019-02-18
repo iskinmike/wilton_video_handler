@@ -58,8 +58,8 @@ define([
             encoder_settings["out"] = "out.mp4";
             encoder_settings["width"] = 480;
             encoder_settings["height"] = 360;
-            encoder_settings["bit_rate"] = 100000;
-            encoder_settings["framerate"] = parseFloat("10.0");
+            encoder_settings["bit_rate"] = 400000;
+            encoder_settings["framerate"] = parseFloat("20.0");
             
             var display_settings = {};
             display_settings["id"] = 1;
@@ -109,7 +109,7 @@ define([
                 logger.info("Server is running ...");
                 thread.sleepMillis(1000);
             }
-            // ph_res = wiltoncall("av_make_photo", photo_settings);
+            ph_res = wiltoncall("av_make_photo", photo_settings);
             // print(ph_res);
             wiltoncall("av_stop_video_display", display_id);
             wiltoncall("av_delete_display", display_id);

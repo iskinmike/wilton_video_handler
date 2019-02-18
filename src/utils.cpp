@@ -19,9 +19,9 @@ AVFrame* utils::rescale_frame(AVFrame *frame, int new_width, int new_height, AVP
                 new_height,
                 format,
                 SWS_FAST_BILINEAR,
-                NULL,
-                NULL,
-                NULL
+                nullptr,
+                nullptr,
+                nullptr
                 );
 
     AVFrame* frame_rgb = av_frame_alloc();
