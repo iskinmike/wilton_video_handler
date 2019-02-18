@@ -60,7 +60,7 @@ class encoder
     uint64_t last_time; // used to calculate frame time to append frames from another camera
     bool first_run; // checks is
 
-    FILE *file;
+//    FILE *file;
     std::thread encoder_thread;
     void run_encoding();
     std::atomic_bool stop_flag;
@@ -74,7 +74,7 @@ class encoder
     AVRational get_time_base_from_keeper();
     void rescale_frame(AVFrame* frame);
 public:
-  explicit encoder(encoder_settings set);
+  explicit encoder(const encoder_settings& set);
   ~encoder();
 
   std::string init();
@@ -88,7 +88,7 @@ public:
   void fflush_encoder();
   bool is_initialized() const;
 
-  void setup_frame_keeper(std::shared_ptr<frame_keeper> keeper);
+  void setup_frame_keeper(const std::shared_ptr<frame_keeper>& keeper);
   std::string get_out_file();
 };
 

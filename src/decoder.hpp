@@ -66,7 +66,7 @@ class decoder
 
     std::atomic_bool stop_flag;
 public:
-    decoder(decoder_settings set);
+    explicit decoder(decoder_settings set);
     ~decoder();
 
     std::string init();

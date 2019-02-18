@@ -186,7 +186,7 @@ std::string display::wait_result(){
     return init_result;
 }
 
-void display::send_result(std::string result) {
+void display::send_result(const std::string& result) {
     init_result = result;
     sync_point.flag.exchange(true);
     sync_point.cond.notify_all();
@@ -197,7 +197,7 @@ AVFrame *display::get_frame_from_keeper() {
     return keeper->get_frame();
 }
 
-display::display(display_settings set)
+display::display(const display_settings& set)
     : renderer(nullptr), screen(nullptr), texture(nullptr), title(set.title), parent_title(set.parent_title),
       init_result("can't init"), initialized(false), width(set.width),
       height(set.height), pos_x(set.pos_x), pos_y(set.pos_y), rescaler(set.width, set.height, AV_PIX_FMT_YUV420P)
@@ -319,7 +319,7 @@ void display::set_display_topmost(){
 #endif
 }
 
-void display::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
+void display::setup_frame_keeper(const std::shared_ptr<frame_keeper>& keeper){
     std::lock_guard<std::mutex> guard(mtx);
     this->keeper = keeper;
     rescaler.clear_sws_context();

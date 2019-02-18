@@ -27,7 +27,7 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 
 namespace utils {
 
-std::string construct_error(std::string what);
+std::string construct_error(const std::string& what);
 
 AVFrame* rescale_frame(AVFrame* frame, int new_width, int new_height, AVPixelFormat format, std::vector<uint8_t>& buffer);
 
@@ -46,7 +46,6 @@ public:
     AVFrame* rescale_frame(AVFrame* frame);
     ~frame_rescaler();
 };
-
 } // utils
 
 #endif  /* VIDEO_HANDLER_UTILS_HPP */

@@ -55,11 +55,14 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_init_decoder(**decoder-settings**) | Initialize decoder with specified **decoder-settings**. Return handler **id** as *string* value. |
 | av_init_encoder(**encoder-settings**) | Initialize encoder with specified **encoder-settings**. Return handler **id** as *string* value. |
 | av_init_display(**display-settings**) | Initialize display with specified **display-settings**. Return handler **id** as *string* value. |
-| av_delete_decoder(**id**) | Delete initialised decoder. Required decoder **id** |
-| av_delete_encoder(**id**) | Delete initialised encoder. Required encoder **id** |
-| av_delete_display(**id**) | Delete initialised display. Required display **id** |
+| av_init_recognizer(**recognizer-settings**) | Initialize recognizer with specified **recognizer-settings**. Return handler **id** as *string* value. |
+| av_delete_decoder(**id**) | Delete initialized decoder. Required decoder **id** |
+| av_delete_encoder(**id**) | Delete initialized encoder. Required encoder **id** |
+| av_delete_display(**id**) | Delete initialized display. Required display **id** |
+| av_delete_recognizer(**id**) | Delete initialized recognizer. Required display **id** |
 | av_setup_decoder_to_display(**settings**) | Setup decoder to display. Display takes frames from decoder. Required decoder **id** and display **id**. |
-| av_setup_decoder_to_encoder(**settings**) | Setup decoder to encoder. Encoder takes frames from decoder. Required decoder **id** and encoder **id**. |
+| av_setup_decoder_to_encoder(**settings**) | Setup decoder to encoder. Encoder takes frames from decoder. Required decoder **id** and recognizer **id**. |
+| av_setup_decoder_to_recognizer(**settings**) | Setup decoder to recognizer. Encoder takes frames from decoder. Required decoder **id** and encoder **id**. |
 | av_make_photo(**photo-settings**) | Take photo from specified decoder. Required decoder **id**. |
 | av_start_video_display(**id**) | Create window to display video from device. Required display **id**.|
 | av_stop_video_display(**id**)  | Stop display video from device and destroy display. Required display **id**. |
@@ -70,6 +73,9 @@ If you use Visual Studio different from VS2013, you should install vcredist 20xx
 | av_is_decoder_started(**id**) | Returns 1 if decoder is started, 0 if not. Required handler's **id** |
 | av_is_encoder_started(**id**) | Returns 1 if encoder is started, 0 if not. Required handler's **id** |
 | av_is_display_started(**id**) | Returns 1 if display of frames is started, 0 if not. Required handler's **id** |
+| av_start_recognizer(**id**) | Start recognizing algorithm. Required handler's **id** |
+| av_stop_recognizer(**id**) | Stop recognizing algorithm. Required handler's **id** |
+| av_is_recognizing_in_progress(**id**) | Returns 1 if recognizer is started, 0 if not. Required handler's **id** |
 
 
 Settings 
@@ -117,6 +123,35 @@ photo_settings:
   "height" = 128;             // Height of photo file. Optional. Default: height of captured device image
 }
 ```
+recognizer_settings: 
+```JavaScript
+{
+  "id" : 1,                   // Decoder **id**. Required
+  "width" = 128;              // Width of photo file. Optional. Default: width of captured device image
+  "height" = 128;             // Height of photo file. Optional. Default: height of captured device image
+// face detection
+  "ip" : "127.0.0.1" // Required. Ip of server that will send alerts if detected faces not equal to 1. 
+  "port" : 7777      // Required. Port of server.
+  "waitTimeMillis" :  500         // Required. Time of delay between matching frames.
+                                // Required. Path to cascade mesh. On linux this is standard path if tou setup opencv.
+  "faceCascadePath" : "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; 
+  // Cascade detection options. More info: https://docs.opencv.org/2.4/modules/objdetect/doc/cascade_classification.html#cascadeclassifier-detectmultiscale
+  "scale" : 1.2           // scaleFactor – Parameter specifying how much the image size is reduced at each image scale.
+  "nearFacesCount" : 3    // minNeighbors – Parameter specifying how many neighbors each candidate rectangle should have to retain it.
+  "minSizeX" : 30         // minSize – Minimum possible object size. Objects smaller than that are ignored. X axis value
+  "minSizeY" : 30         // minSize – Minimum possible object size. Objects smaller than that are ignored. Y axis value
+  // Templates detection options. More info below.
+  "templateDetectorMinThreshold" : 0.20           // Minimal threshold for matcher function if min value is above this threshold mark template as detected
+  "matcherIntersectionPercentThreshold" : 0.85    // determines intersection between new finded face and face search area of already created template. 
+                                                  // If intersection is above this value we delete one of intesected templates.
+  // Debug otions
+  "enableDebugDisplay" : 1  // Creates display with detected templates. Purple circle - face finded by cascade. Red square - tracked template.
+  "loggerSettings" : {   
+    "path" : "data.txt"     // Saves some debug information into specified file.
+  }
+}
+```
+
  - With some cameras there is a trouble with time_base determination. You may setup time_base manually.
 On windows HP cam you may try options 
 ```js
@@ -147,3 +182,71 @@ For example, if display, decoder or encoder handler with **id** doesn't exists f
   "error": "Wrong display/decoder/encoder id [$id]"
 }
 ``` 
+
+
+### Face detection
+
+Module provides server for sending errors and face detection algorithm. Server starts when video handler created by call av_inti_handler().
+If it detects number of faces different from 1 it send alert message to client. In case of error send error message;
+
+alert message:
+```JavaScript
+{
+  "alert_number" : ##
+  "faces_count" : ##
+}
+```
+
+error message:
+```JavaScript
+{
+  "error" : "error text"
+}
+```
+
+usage example with wilton_net sockets:
+
+```JavaScript
+dyload({
+    name: "wilton_video_handler"
+});
+dyload({
+    name: "wilton_net"
+});
+
+...
+
+var settings = {};
+settings["id"] = 1;
+...
+settings["recognizer_ip"] = "127.0.0.1";
+settings["recognizer_port"] = 7777;
+settings["wait_time_ms"] = 1;
+settings["face_cascade_path"] = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; 
+
+...
+
+var socket = {}
+socket["ipAddress"] = "127.0.0.1";
+socket["tcpPort"] = 7777;
+socket["protocol"] = "TCP";
+socket["role"] = "client";
+socket["timeoutMillis"] = 2000;
+var socket_handler = wiltoncall("net_socket_open", socket);
+print("=== socket_handler: " + socket_handler);
+
+wiltoncall("av_start_recognizer", resp);
+print("=== av_start_recognizer");
+for (var i = 0; i < 20; ++i) {
+    thread.sleepMillis(1000);
+    var read_conf = {};
+    read_conf["socketHandle"] = JSON.parse(socket_handler).socketHandle;
+    read_conf["timeoutMillis"] = 1000;
+    var data = wiltoncall("net_socket_read", read_conf);
+    print("=== data: [" + data +"]")
+}
+wiltoncall("av_stop_recognizer", resp);
+print("=== av_stop_recognizer");
+
+wiltoncall("net_socket_close", JSON.parse(socket_handler));
+```

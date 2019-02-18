@@ -34,12 +34,13 @@
 #include "display.hpp"
 #include "photo.hpp"
 #include "frame_keeper.hpp"
+#include "recognizer.hpp"
 #include "video_logger.hpp"
 
 #include "jansson.h"
 
 #ifndef VERSION_STR
-#define VERSION_STR "VIDEO_HANDLER. Ver 1.01. Debug logging"
+#define VERSION_STR "VIDEO_HANDLER. Ver 1.02. Debug logging, OpenCV recognizer"
 #endif
 
 namespace video_handler {
@@ -48,12 +49,22 @@ namespace { //anonymous
 std::map<int,std::shared_ptr<encoder>> encoders;
 std::map<int,std::shared_ptr<decoder>> decoders;
 std::map<int,std::shared_ptr<display>> displays;
+std::map<int,std::shared_ptr<recognizer>> recognizers;
+
 //video_logger logger;
 int get_integer_or_throw(const std::string& key, json_t* value) {
     if (json_is_integer(value)) {
         return static_cast<int>(json_integer_value(value));
     }
     throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains integer value"});
+}
+double get_double_or_throw(const std::string& key, json_t* value) {
+    if (json_is_real(value)) {
+        return static_cast<double>(json_real_value(value));
+    } else {
+        return static_cast<double>(get_integer_or_throw(key, value)); // need to handle JavaScript behaviour to cast .0 double to integer values
+    }
+    throw std::invalid_argument(std::string{"Error: Key [" + key+ "] don't contains double or JS casted integer value"});
 }
 std::string get_string_or_throw(const std::string& key, json_t* value) {
     if (json_is_string(value)) {
@@ -105,6 +116,11 @@ std::string av_setup_decoder_to_encoder(int encoder_id, int decoder_id){
     encoders[encoder_id]->setup_frame_keeper(decoders[decoder_id]->get_keeper());
     return std::string{};
 }
+std::string av_setup_decoder_to_recognizer(int recognizer_id, int decoder_id){
+    recognizers[recognizer_id]->setup_frame_keeper(decoders[decoder_id]->get_keeper());
+    return std::string{};
+}
+
 std::string av_delete_display(int id){
     displays.erase(id);
     return std::string{};
@@ -142,6 +158,33 @@ std::string av_start_video_display(int id){
 }
 std::string av_stop_video_display(int id){
     displays[id]->stop_display();
+    return std::string{};
+}
+// functions for recognizer test
+int av_init_recognizer(int id, recognizer_settings set){
+    if (recognizers.count(id)){
+        recognizers.erase(id);
+    }
+    recognizers[id] = std::make_shared<recognizer> (set);
+    return id;
+}
+std::string av_start_recognizer(int id){
+    return recognizers[id]->run_recognizer_display();
+}
+std::string av_stop_recognizer(int id){
+    recognizers[id]->stop_cheking_display();
+    return std::string{};
+}
+// recogniz function. true if encoder/decoder started
+std::string av_is_recognizing_in_progress(int id){
+    bool flag = false;
+    if (recognizers.count(id)) {
+        flag = recognizers[id]->is_recognizing();
+    }
+    return std::to_string(flag);
+}
+std::string av_delete_recognizer(int id){
+    recognizers.erase(id);
     return std::string{};
 }
 // takes photo from decoded frame
@@ -203,6 +246,9 @@ char* vahandler_wrapper_for(void* ctx, const char* data_in, int data_in_len, cha
         } else if (std::is_same<T, decoder>::value) {
             existance_check = (nullptr == decoders[id]);
             name = "decoder";
+        } else if (std::is_same<T, recognizer>::value) {
+            existance_check = (nullptr == recognizers[id]);
+            name = "recognizer";
         } else {
             throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_for]");
         }
@@ -240,12 +286,14 @@ char* vahandler_wrapper_is_started(void* ctx, const char* data_in, int data_in_l
     try {
         auto fun = reinterpret_cast<std::string(*)(int)> (ctx);
         auto str_id = std::string(data_in, static_cast<size_t>(data_in_len));
+
         int id = 0;
         try {
             id = std::stoi(str_id);
         } catch (...) {
             throw std::invalid_argument("Wrong data format used. Excpected integer value, sended '" + str_id + "'");
         }
+
         // chek if handler with id initialized
         auto output = std::string{};
 
@@ -256,6 +304,8 @@ char* vahandler_wrapper_is_started(void* ctx, const char* data_in, int data_in_l
             existance_check = (nullptr == encoders[id]);
         } else if (std::is_same<T, decoder>::value) {
             existance_check = (nullptr == decoders[id]);
+        } else if (std::is_same<T, recognizer>::value) {
+            existance_check = (nullptr == recognizers[id]);
         } else {
             throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_is_started]");
         }
@@ -299,20 +349,21 @@ char* vahandler_wrapper_setup_decoder_to(void* ctx, const char* data_in, int dat
         } else if (std::is_same<T, encoder>::value){
             key_name = "encoder_id";
             destination_name = "Encoder";
+        } else if (std::is_same<T, recognizer>::value){
+            key_name = "recognizer_id";
+            destination_name = "Recognizer";
         } else {
             throw std::invalid_argument("Wrong use of function template [vahandler_wrapper_setup_decoder_to]");
         }
 
         auto fun = reinterpret_cast<std::string(*)(int, int)> (ctx);
 
-        json_t *root = nullptr;
         json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
-
 
         int something_id = 0;
         int decoder_id = 0;
@@ -339,6 +390,8 @@ char* vahandler_wrapper_setup_decoder_to(void* ctx, const char* data_in, int dat
             existance_check = (nullptr == displays[something_id]);
         } else if (std::is_same<T, encoder>::value){
             existance_check = (nullptr == encoders[something_id]);
+        } else if (std::is_same<T, recognizer>::value){
+            existance_check = (nullptr == recognizers[something_id]);
         }
 
         auto output = std::string{};
@@ -357,6 +410,7 @@ char* vahandler_wrapper_setup_decoder_to(void* ctx, const char* data_in, int dat
             *data_out = nullptr;
         }
         *data_out_len = static_cast<int>(output.length());
+        json_decref(root);
         return nullptr;
     } catch (const std::exception& e) {
         auto what = std::string(e.what());
@@ -375,10 +429,9 @@ char* vahandler_wrapper_init_encoder(void* ctx, const char* data_in, int data_in
     try {
         auto fun = reinterpret_cast<int(*)(int, encoder_settings)> (ctx);
 
-        json_t *root = nullptr;
         json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
@@ -459,10 +512,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
     try {
         auto fun = reinterpret_cast<std::string(*)(int, decoder_settings)> (ctx);
 
-        json_t *root = nullptr;
         json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
@@ -561,10 +613,9 @@ char* vahandler_wrapper_init_display(void* ctx, const char* data_in, int data_in
     try {
         auto fun = reinterpret_cast<int(*)(int, display_settings)> (ctx);
 
-        json_t *root = nullptr;
         json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
@@ -617,8 +668,162 @@ char* vahandler_wrapper_init_display(void* ctx, const char* data_in, int data_in
         settings.pos_x = pos_x;
         settings.pos_y = pos_y;
 
+        std::string output = std::to_string(fun(id, settings));
+
+        if (!output.empty()) {
+            // nul termination here is required only for JavaScriptCore engine
+            *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
+            std::memcpy(*data_out, output.c_str(), output.length() + 1);
+        } else {
+            *data_out = nullptr;
+        }
+        *data_out_len = static_cast<int>(output.length());
+        json_decref(root);
+        return nullptr;
+
+    } catch (const std::exception& e) {
+        auto what = std::string(e.what());
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    } catch (...) {
+        auto what = std::string("CALL ERROR");
+        char* err = wilton_alloc(static_cast<int>(what.length()) + 1);
+        std::memcpy(err, what.c_str(), what.length() + 1);
+        return err;
+    }
+}
+char* vahandler_wrapper_init_recognizer(void* ctx, const char* data_in, int data_in_len, char** data_out, int* data_out_len) {
+    try {
+        auto fun = reinterpret_cast<int(*)(int, recognizer_settings)> (ctx);
+
+        json_error_t error;
+
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
+        if(!root) {
+            throw std::invalid_argument("Error: " + std::string{error.text});
+        }
+
+        int id = 0;
+        int width = -1;
+        int height = -1;
+        auto recognizer_ip = std::string{"127.0.0.1"};
+        int recognizer_port = 9087;
+        auto face_cascade_path = std::string{"/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"};
+        int64_t wait_time_ms = 1000; // 1 sec
+
+        float scale = 1.2;
+        int near_faces = 3;
+        int min_size_x = 30;
+        int min_size_y = 30;
+        int max_size_x = 200;
+        int max_size_y = 200;
+
+        float template_detector_min_threshold = 0.20;
+        float matcher_intersection_percent_threshold = 0.85;
+
+        int enable_debug_display = 0;
+        auto logger_tmp_file = std::string{};
+
+        /* obj is a JSON object */
+        const char *key = nullptr;
+        json_t *value = nullptr;
+
+        json_object_foreach(root, key, value) {
+            auto key_str = std::string{key};
+            if ("id" == key_str) {
+                id = get_integer_or_throw(key_str, value);
+            } else if ("ip" == key_str) {
+                recognizer_ip = get_string_or_throw(key_str, value);
+            } else if ("faceCascadePath" == key_str) {
+                face_cascade_path = get_string_or_throw(key_str, value);
+            } else if ("port" == key_str) {
+                recognizer_port = get_integer_or_throw(key_str, value);
+            } else if ("waitTimeMillis" == key_str) {
+                wait_time_ms = get_integer_or_throw(key_str, value);
+            } else if ("width" == key_str) {
+                width = get_integer_or_throw(key_str, value);
+            } else if ("height" == key_str) {
+                height = get_integer_or_throw(key_str, value);
+            } else if ("scale" == key_str) {
+                scale = get_double_or_throw(key_str, value);
+            } else if ("nearFacesCount" == key_str) {
+                near_faces = get_integer_or_throw(key_str, value);
+            } else if ("minSizeX" == key_str) {
+                min_size_x = get_integer_or_throw(key_str, value);
+            } else if ("minSizeY" == key_str) {
+                min_size_y = get_integer_or_throw(key_str, value);
+            } else if ("maxSizeX" == key_str) {
+                max_size_x = get_integer_or_throw(key_str, value);
+            } else if ("maxSizeY" == key_str) {
+                max_size_y = get_integer_or_throw(key_str, value);
+            } else if ("templateDetectorMinThreshold" == key_str) {
+                template_detector_min_threshold = get_double_or_throw(key_str, value);
+            } else if ("matcherIntersectionPercentThreshold" == key_str) {
+                matcher_intersection_percent_threshold = get_double_or_throw(key_str, value);
+            } else if ("enableDebugDisplay" == key_str) {
+                enable_debug_display = get_integer_or_throw(key_str, value);
+            } else if ("loggerSettings" == key_str) {
+                if (json_is_object(value)) {
+                    json_t *subobject = nullptr;
+                    const char *subobject_key = nullptr;
+                    json_object_foreach(value, subobject_key, subobject){
+                        auto subobject_key_str = std::string{subobject_key};
+                        if ("path" == subobject_key_str) {
+                            logger_tmp_file = get_string_or_throw(subobject_key_str, subobject);
+                        } else {
+                            std::string err_msg = std::string{"Unknown data field: [loggerSettings]["} + subobject_key_str + "]";
+                            throw std::invalid_argument(err_msg);
+                        }
+                    }
+                }
+            } else {
+                std::string err_msg = std::string{"Unknown data field: ["} + key + "]";
+                throw std::invalid_argument(err_msg);
+            }
+        }
+
+        // check not optional json data
+        if (recognizer_ip.empty())  throw std::invalid_argument(
+                "Required parameter 'recognizer_ip' not specified");
+        if (face_cascade_path.empty())  throw std::invalid_argument(
+                "Required parameter 'face_cascade_path' not specified");
+        if (-1 == recognizer_port)  throw std::invalid_argument(
+                "Required parameter 'recognizer_port' not specified");
+        if (-1 == wait_time_ms)  throw std::invalid_argument(
+                "Required parameter 'wait_time_ms' not specified");
+
+
+        int enable_logger = !logger_tmp_file.empty();
+        template_detector_settings template_set;
+        template_set.min_threshold = template_detector_min_threshold;
+        template_set.enable_logging = enable_logger;
+
+        matcher_settings matcher_set;
+        matcher_set.intersection_percent_threshold = matcher_intersection_percent_threshold;
+        matcher_set.template_set = template_set;
+        matcher_set.enable_logging = enable_logger;
+
+        recognizer_settings settings;
+        settings.ip = recognizer_ip;
+        settings.port = recognizer_port;
+        settings.face_cascade_path = face_cascade_path;
+        settings.wait_time_ms = wait_time_ms;
+        settings.width = width;
+        settings.height = height;
+        settings.scale = scale;
+        settings.near_faces = near_faces;
+        settings.min_size_x = min_size_x;
+        settings.min_size_y = min_size_y;
+        settings.max_size_x = max_size_x;
+        settings.max_size_y = max_size_y;
+        settings.matcher_set = matcher_set;
+        settings.enable_debug_display = enable_debug_display;
+        settings.logger_tmp_file = logger_tmp_file;
+        settings.enable_logger = enable_logger;
 
         std::string output = std::to_string(fun(id, settings));
+
         if (!output.empty()) {
             // nul termination here is required only for JavaScriptCore engine
             *data_out = wilton_alloc(static_cast<int>(output.length()) + 1);
@@ -647,10 +852,9 @@ char* vahandler_wrapper_make_photo(void* ctx, const char* data_in, int data_in_l
     try {
         auto fun = reinterpret_cast<std::string(*)(int, const std::string, int, int)> (ctx);
 
-        json_t *root = nullptr;
         json_error_t error;
 
-        root = json_loadb(data_in, data_in_len, 0, &error);
+        json_t* root = json_loadb(data_in, data_in_len, 0, &error);
         if(!root) {
             throw std::invalid_argument("Error: " + std::string{error.text});
         }
@@ -777,6 +981,34 @@ char* wilton_module_init() {
             reinterpret_cast<void*> (video_handler::av_start_video_display), video_handler::vahandler_wrapper_for<display>);
     if (nullptr != err) return err;
 
+    ///////////////////////
+    // register 'av_init_recognizer' function
+    auto name_av_init_recognizer = std::string("av_init_recognizer");
+    err = wiltoncall_register(name_av_init_recognizer.c_str(), static_cast<int> (name_av_init_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_init_recognizer), video_handler::vahandler_wrapper_init_recognizer);
+    if (nullptr != err) return err;
+    // register 'av_delete_recognizer' function
+    auto name_av_delete_recognizer = std::string("av_delete_recognizer");
+    err = wiltoncall_register(name_av_delete_recognizer.c_str(), static_cast<int> (name_av_delete_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_delete_recognizer), video_handler::vahandler_wrapper_for<recognizer>);
+    if (nullptr != err) return err;
+    // register 'av_stop_recognizer' function
+    auto name_av_stop_recognizer = std::string("av_stop_recognizer");
+    err = wiltoncall_register(name_av_stop_recognizer.c_str(), static_cast<int> (name_av_stop_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_stop_recognizer), video_handler::vahandler_wrapper_for<recognizer>);
+    if (nullptr != err) return err;
+    // register 'av_start_recognizer' function
+    auto name_av_start_recognizer = std::string("av_start_recognizer");
+    err = wiltoncall_register(name_av_start_recognizer.c_str(), static_cast<int> (name_av_start_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_start_recognizer), video_handler::vahandler_wrapper_for<recognizer>);
+    if (nullptr != err) return err;
+    // register 'av_is_recognizing_in_progress' function
+    auto name_av_is_recognizing_in_progress = std::string("av_is_recognizing_in_progress");
+    err = wiltoncall_register(name_av_is_recognizing_in_progress.c_str(), static_cast<int> (name_av_is_recognizing_in_progress.length()),
+            reinterpret_cast<void*> (video_handler::av_is_recognizing_in_progress), video_handler::vahandler_wrapper_is_started<recognizer>);
+    if (nullptr != err) return err;
+    //////////////////////
+
     // register 'av_make_photo' function
     auto name_av_make_photo = std::string("av_make_photo");
     err = wiltoncall_register(name_av_make_photo.c_str(), static_cast<int> (name_av_make_photo.length()),
@@ -836,6 +1068,11 @@ char* wilton_module_init() {
     auto name_av_setup_decoder_to_display = std::string("av_setup_decoder_to_display");
     err = wiltoncall_register(name_av_setup_decoder_to_display.c_str(), static_cast<int> (name_av_setup_decoder_to_display.length()),
             reinterpret_cast<void*> (video_handler::av_setup_decoder_to_display), video_handler::vahandler_wrapper_setup_decoder_to<display>);
+    if (nullptr != err) return err;
+
+    auto name_av_setup_decoder_to_recognizer = std::string("av_setup_decoder_to_recognizer");
+    err = wiltoncall_register(name_av_setup_decoder_to_recognizer.c_str(), static_cast<int> (name_av_setup_decoder_to_recognizer.length()),
+            reinterpret_cast<void*> (video_handler::av_setup_decoder_to_recognizer), video_handler::vahandler_wrapper_setup_decoder_to<recognizer>);
     if (nullptr != err) return err;
 
     auto name_av_setup_decoder_to_encoder = std::string("av_setup_decoder_to_encoder");

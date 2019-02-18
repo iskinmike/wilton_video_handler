@@ -1,11 +1,12 @@
 #include "utils.hpp"
 
-std::string utils::construct_error(std::string what){
+std::string utils::construct_error(const std::string& what){
     std::string error("{ \"error\": \"");
     error += what;
     error += "\"}";
     return error;
 }
+
 
 AVFrame* utils::rescale_frame(AVFrame *frame, int new_width, int new_height, AVPixelFormat format, std::vector<uint8_t> &buffer){
     if (nullptr == frame) {

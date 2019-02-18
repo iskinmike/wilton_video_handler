@@ -66,13 +66,12 @@ void encoder::rescale_frame(AVFrame *frame) {
     frame_out->best_effort_timestamp = frame->best_effort_timestamp;
 }
 
-
 bool encoder::is_initialized() const
 {
     return initialized;
 }
 
-void encoder::setup_frame_keeper(std::shared_ptr<frame_keeper> keeper){
+void encoder::setup_frame_keeper(const std::shared_ptr<frame_keeper>& keeper){
     if (encoding_started) {
         pause_encoding();
         {
@@ -92,9 +91,9 @@ std::string encoder::get_out_file(){
     return out_file;
 }
 
-encoder::encoder(encoder_settings set)
+encoder::encoder(const encoder_settings& set)
     : encode_codec(nullptr), out_file(set.output_file), initialized(false),
-      out_format_ctx(nullptr), out_stream(nullptr), pts_flag(false), last_pts(-1), last_time(0),
+      out_format_ctx(nullptr), out_stream(nullptr), pts_flag(false), last_pts(-1), last_time(0), first_run(true), frame_out(nullptr),
       bit_rate(set.bit_rate), width(set.width), height(set.height), framerate(set.framerate), rescaler(set.width, set.height, AV_PIX_FMT_YUV420P)
 {
     stop_flag.exchange(false); // to avoid warnings from VS2013

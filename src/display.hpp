@@ -77,17 +77,16 @@ class display
     std::thread display_thread;
     void run_display();
     std::string wait_result();
-    void send_result(std::string result);
+    void send_result(const std::string& result);
     std::atomic_bool stop_flag;
     bool initialized;
 
     utils::frame_rescaler rescaler;
-    std::vector<uint8_t> buffer;
 
     std::shared_ptr<frame_keeper> keeper;
     AVFrame *get_frame_from_keeper();
 public:
-    display(display_settings set);
+    explicit display(const display_settings &set);
     ~display();
 
     std::string init();
@@ -98,7 +97,7 @@ public:
     void display_frame(AVFrame* frame);
 
     void set_display_topmost();
-    void setup_frame_keeper(std::shared_ptr<frame_keeper> keeper);
+    void setup_frame_keeper(const std::shared_ptr<frame_keeper>& keeper);
 
 };
 

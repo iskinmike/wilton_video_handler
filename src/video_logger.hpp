@@ -105,6 +105,8 @@ public:
         }
         file.write(message.data(), res);
         file.close();
+        va_end(vl);
+        va_end(nsvl);
     }
     void setup_callback_function(){
         if (!tmp_log_file.size()) return;

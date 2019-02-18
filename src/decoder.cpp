@@ -36,7 +36,7 @@ decoder::decoder(decoder_settings set)
     : filename(set.input_file), format(set.format),
       format_ctx(nullptr),file_iformat(nullptr),codec_ctx(nullptr),
       codec(nullptr), frame(nullptr), initialized(false),
-      width(-1), height(-1), bit_rate(-1)
+      width(-1), height(-1), bit_rate(-1), frame_finished(0), video_stream(0)
 {
     stop_flag.exchange(false);
     keeper = std::make_shared<frame_keeper>();
@@ -66,6 +66,7 @@ std::string decoder::init()
     }
 
     file_iformat = av_find_input_format(format.c_str());
+
     if (file_iformat == nullptr) {
         return utils::construct_error("Unknown input format: " + format);
     }
@@ -101,6 +102,7 @@ std::string decoder::init()
 
     // Find the decoder for the video stream
     codec=avcodec_find_decoder(codec_ctx->codec_id);
+
     if(codec==nullptr) {
         return utils::construct_error("Unsupported codec!");
     }
