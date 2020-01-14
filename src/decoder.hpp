@@ -34,14 +34,16 @@ extern "C" { // based on: https://stackoverflow.com/questions/24487203/ffmpeg-un
 
 
 struct decoder_settings {
-    std::string input_file, format;
+    std::string input_file, format, framerate, videoformat, size;
     int time_base_den, time_base_num;
+    decoder_settings(): input_file(""), format(""), framerate(), videoformat(""), size(""), time_base_den(1000000), time_base_num(1) {}
 };
 
 void start_decode_video(std::string file_name);
 
 class decoder
 {
+    decoder_settings settings;
     std::string      filename;
     std::string      format;
     AVFormatContext* format_ctx;
@@ -49,6 +51,7 @@ class decoder
     AVCodecContext*  codec_ctx;
     AVCodec*         codec;
     AVFrame*         frame;
+    AVDictionary*    opts;
     std::shared_ptr<frame_keeper> keeper;
     AVRational input_time_base;
 
@@ -66,7 +69,7 @@ class decoder
 
     std::atomic_bool stop_flag;
 public:
-    decoder(decoder_settings set);
+    decoder(const decoder_settings& set);
     ~decoder();
 
     std::string init();

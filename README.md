@@ -79,6 +79,9 @@ decoder_settings:
   "id" : 1,                   // You may setup id manually. Optional. Default value 0;
   "in" : "/dev/video0",       // Name of input device. Required
   "fmt" : "video4linux2",     // Name of input ffmpeg format. Required
+  "framerate": "60/1",        // Optiopnal. Encoded stream framerate.
+  "videoformat": "mjpeg",     // Optiopnal. Encoded stream video format.
+  "size": "1280x720",         // Optiopnal.  Encoded stream size.
   // time base determined as numerator/denumerator.
   "time_base_den" : 1000000   // Optional. Setup camera time base denumerator. Standart value for Linux: 1000000
   "time_base_num" : 1         // Optional. Setup camera time base numerator. Standart value: 1

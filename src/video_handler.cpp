@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-/* 
- * File:   example.cpp
- * Authorы: alex, mike
- *
- * Created on March 28, 2018, 16:32 PM
- */
-
 #include <cstring>
 #include <string>
 #include <memory>
@@ -39,7 +32,7 @@
 #include "jansson.h"
 
 #ifndef VERSION_STR
-#define VERSION_STR "VIDEO_HANDLER. Ver 1.01. Debug logging"
+#define VERSION_STR "VIDEO_HANDLER. Ver 1.02. Added decoding settings"
 #endif
 
 namespace video_handler {
@@ -471,6 +464,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         int id = 0;
         auto in = std::string{};
         auto fmt = std::string{};
+        auto framerate = std::string{};
+        auto videoformat = std::string{};
+        auto size = std::string{};
         int time_base_den = not_set;
         int time_base_num = not_set;
 
@@ -489,6 +485,12 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
                 in = get_string_or_throw(key_str, value);
             } else if ("fmt" == key_str) {
                 fmt = get_string_or_throw(key_str, value);
+            } else if ("framerate" == key_str) {
+                framerate = get_string_or_throw(key_str, value);
+            } else if ("videoformat" == key_str) {
+                videoformat = get_string_or_throw(key_str, value);
+            } else if ("size" == key_str) {
+                size = get_string_or_throw(key_str, value);
             } else if ("time_base_den" == key_str) {
                 time_base_den = get_integer_or_throw(key_str, value);
             } else if ("time_base_num" == key_str) {
@@ -522,6 +524,9 @@ char* vahandler_wrapper_init_decoder(void* ctx, const char* data_in, int data_in
         decoder_settings settings;
         settings.input_file = in;
         settings.format = fmt;
+        settings.framerate = framerate;
+        settings.videoformat = videoformat;
+        settings.size = size;
         settings.time_base_den = time_base_den;
         settings.time_base_num = time_base_num;
 

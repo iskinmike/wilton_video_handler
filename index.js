@@ -38,17 +38,20 @@ define([
 
             var decoder_settings = {};
             decoder_settings["id"] = 1;
-            decoder_settings["in"] = "/dev/video0";   // linux
+            decoder_settings["in"] = "/dev/video1";   // linux
             decoder_settings["fmt"] = "video4linux2"; // linux
             // decoder_settings["in"] = "video=HP Webcam";  // windows
             // decoder_settings["fmt"] = "dshow";           // windows
+            decoder_settings["framerate"] = "60/1";
+            decoder_settings["videoformat"] = "mjpeg";
+            decoder_settings["size"] = "1280x720";
             decoder_settings["time_base_den"] = 1000000;
             decoder_settings["time_base_num"] = 1;
             decoder_settings["loggerSettings"] = {"path" : "./tmp.log"};
 
             var decoder_settings_2 = {};
             decoder_settings_2["id"] = 2;
-            decoder_settings_2["in"] = "/dev/video1";   // linux
+            decoder_settings_2["in"] = "/dev/video0";   // linux
             decoder_settings_2["fmt"] = "video4linux2"; // linux
             decoder_settings_2["time_base_den"] = 10000000;
             decoder_settings_2["time_base_num"] = 10;
@@ -56,17 +59,17 @@ define([
             var encoder_settings = {};
             encoder_settings["id"] = 1;
             encoder_settings["out"] = "out.mp4";
-            encoder_settings["width"] = 480;
-            encoder_settings["height"] = 360;
-            encoder_settings["bit_rate"] = 400000;
-            encoder_settings["framerate"] = parseFloat("20.0");
+            encoder_settings["width"] = 1280;
+            encoder_settings["height"] = 720;
+            encoder_settings["bit_rate"] = 4000000;
+            encoder_settings["framerate"] = parseFloat("60.0");
             
             var display_settings = {};
             display_settings["id"] = 1;
             display_settings["title"] = "CAM";
             display_settings["parent_title"] = "Tor Browser";
-            display_settings["width"] = 320;
-            display_settings["height"] = 240;
+            display_settings["width"] = 1280;
+            display_settings["height"] = 720;
             display_settings["pos_x"] = 300;
             display_settings["pos_y"] = 300;
 
@@ -107,7 +110,7 @@ define([
             print("av_start_video_display: " + start_res); 
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
-                thread.sleepMillis(1000);
+                thread.sleepMillis(4000);
             }
             ph_res = wiltoncall("av_make_photo", photo_settings);
             // print(ph_res);

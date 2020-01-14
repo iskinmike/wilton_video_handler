@@ -32,10 +32,10 @@ bool decoder::is_initialized() const
     return initialized;
 }
 
-decoder::decoder(decoder_settings set)
-    : filename(set.input_file), format(set.format),
+decoder::decoder(const decoder_settings& set)
+    : settings(set), filename(set.input_file), format(set.format),
       format_ctx(nullptr),file_iformat(nullptr),codec_ctx(nullptr),
-      codec(nullptr), frame(nullptr), initialized(false),
+      codec(nullptr), frame(nullptr), opts(nullptr), initialized(false),
       width(-1), height(-1), bit_rate(-1)
 {
     stop_flag.exchange(false);
@@ -51,6 +51,9 @@ decoder::~decoder()
     avformat_close_input(&format_ctx);
     avformat_free_context(format_ctx);
     av_frame_free(&frame);
+    if (nullptr != opts){
+        av_dict_free(&opts);
+    }
 }
 
 std::string decoder::init()
@@ -70,9 +73,14 @@ std::string decoder::init()
         return utils::construct_error("Unknown input format: " + format);
     }
 
+    // setup options
+    if (!settings.framerate.empty()) av_dict_set(&opts, "framerate", settings.framerate.c_str(), 0); //"60/1"
+    if (!settings.videoformat.empty()) av_dict_set(&opts, "input_format", settings.videoformat.c_str(), 0); //"mjpeg"
+    if (!settings.size.empty()) av_dict_set(&opts, "video_size", settings.size.c_str(), 0); //"1280x720"
+
     // Open video file
-    if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, nullptr)!=0){
-        if(avformat_open_input(&format_ctx, filename.c_str(), nullptr, nullptr)!=0){
+    if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, std::addressof(opts))!=0){
+        if(avformat_open_input(&format_ctx, filename.c_str(), nullptr, std::addressof(opts))!=0){
             return utils::construct_error("Can't Open video file anyway");
         }
     }
