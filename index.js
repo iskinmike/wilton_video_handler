@@ -110,7 +110,7 @@ define([
             print("av_start_video_display: " + start_res); 
             for (var i = 0; i < 2; ++i) {
                 logger.info("Server is running ...");
-                thread.sleepMillis(4000);
+                thread.sleepMillis(8000);
             }
             ph_res = wiltoncall("av_make_photo", photo_settings);
             // print(ph_res);
