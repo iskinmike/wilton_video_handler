@@ -61,7 +61,7 @@ define([
             encoder_settings["out"] = "out.mp4";
             encoder_settings["width"] = 1280;
             encoder_settings["height"] = 720;
-            encoder_settings["bit_rate"] = 4000000;
+            encoder_settings["bit_rate"] = 40000000;
             encoder_settings["framerate"] = parseFloat("60.0");
             
             var display_settings = {};
@@ -89,12 +89,12 @@ define([
 
         for (var counter = 0; counter < 1; ++counter) {
             decoder_id = wiltoncall("av_init_decoder", decoder_settings);
-            print("av_init_decoder");
+            print("av_init_decoder " + decoder_id);
 
             encoder_id = wiltoncall("av_init_encoder", encoder_settings);
-            print("av_init_encoder");
+            print("av_init_encoder " + encoder_id);
             display_id = wiltoncall("av_init_display", display_settings);
-            print("av_init_display");
+            print("av_init_display " + display_id);
 
             wiltoncall("av_setup_decoder_to_display", {decoder_id: 1, display_id: 1});
             wiltoncall("av_setup_decoder_to_encoder", {decoder_id: 1, encoder_id: 1});
@@ -108,9 +108,9 @@ define([
 
             start_res = wiltoncall("av_start_video_display", display_id);
             print("av_start_video_display: " + start_res); 
-            for (var i = 0; i < 2; ++i) {
+            for (var i = 0; i < 1; ++i) {
                 logger.info("Server is running ...");
-                thread.sleepMillis(8000);
+                thread.sleepMillis(2000);
             }
             ph_res = wiltoncall("av_make_photo", photo_settings);
             // print(ph_res);

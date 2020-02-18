@@ -77,6 +77,7 @@ std::string decoder::init()
     if (!settings.framerate.empty()) av_dict_set(&opts, "framerate", settings.framerate.c_str(), 0); //"60/1"
     if (!settings.videoformat.empty()) av_dict_set(&opts, "input_format", settings.videoformat.c_str(), 0); //"mjpeg"
     if (!settings.size.empty()) av_dict_set(&opts, "video_size", settings.size.c_str(), 0); //"1280x720"
+    av_dict_set(&opts, "preset", "faster", 0); //"faster"
 
     // Open video file
     if(avformat_open_input(&format_ctx, filename.c_str(), file_iformat, std::addressof(opts))!=0){
